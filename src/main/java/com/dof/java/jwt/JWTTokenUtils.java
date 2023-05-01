@@ -14,6 +14,7 @@ import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.ParseException;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +39,7 @@ public class JWTTokenUtils {
 	private static final String RSA = "RSA";
 
 	private String serviceAccount = "iotserver-deployer@iot-weather-station-project.iam.gserviceaccount.com";
-	private String pkcs8PrivateKey;
+	private byte[] pkcs8privatekey;
 
 	// LOGGING CONFIG
 	static {
@@ -51,12 +52,13 @@ public class JWTTokenUtils {
 		}
 	}
 	
-	public JWTTokenUtils(String privateKey, String serviceAccount) {
-		this.pkcs8PrivateKey = privateKey;
+	public JWTTokenUtils(String base64privateKey, String serviceAccount) {
+		this.pkcs8privatekey = Base64.getDecoder().decode(base64privateKey);
 		if (serviceAccount != null && !serviceAccount.isEmpty())
 			this.serviceAccount = serviceAccount;
 	}
 
+	@Deprecated
 	byte[] readPrivateKey(String key) throws IOException {
 		try (InputStream in = getClass().getClassLoader().getResourceAsStream(key);) {
 			byte[] buff = new byte[4096];
@@ -71,7 +73,7 @@ public class JWTTokenUtils {
 
 	public String generateSelfSignedJwt() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 
-		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(readPrivateKey(pkcs8PrivateKey));
+		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(pkcs8privatekey);
 
 		KeyFactory keyFactory = KeyFactory.getInstance(RSA);
 		PrivateKey privateKey = keyFactory.generatePrivate(spec);
@@ -91,9 +93,20 @@ public class JWTTokenUtils {
 				.compact();
 	}
 
+	/**
+	 * 
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeySpecException
+	 * @throws IOException
+	 * 
+	 *  create jwt token 
+	 *  	head	{ "typ" : "JWT", "alg" : "RS256" }
+	 *  	claims	{ "issueat" : "now", "exp" : "1day", "aud" : "project_id" }
+	 */
 	public String generateSelfSignedJwtNodeMCU() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 
-		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(readPrivateKey(pkcs8PrivateKey));
+		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(pkcs8privatekey);
 
 		KeyFactory keyFactory = KeyFactory.getInstance(RSA);
 		PrivateKey privateKey = keyFactory.generatePrivate(spec);
@@ -115,7 +128,8 @@ public class JWTTokenUtils {
 		String idToken = null;
 		try {
 			String signedJwt = generateSelfSignedJwt();
-
+			log.debug("Generated self-signed jwt {}", signedJwt);
+			
 			URL url = new URL(GCP_TOKEN_URL);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
@@ -204,10 +218,18 @@ public class JWTTokenUtils {
 			printHelp();
 		} else if (args.length >= 2) {
 			if (args.length == 2 && args[0].equals("-hs256")) {
-				System.out.println(generateHS256Jwt(args[1]));
+				log.info(generateHS256Jwt(args[1]));
 			} else if (args[0].equals("-hs256verify") && args.length == 3) {
 				log.info(String.format("verified: %b", verifyHS256Jwt(args[1], args[2])));
-			} else {
+			}else if(args.length == 3 && args[0].equals("-rs256")) {
+				String jwt = new com.dof.java.jwt.JWTTokenUtils(args[1], args[2]).generateSelfSignedJwt();
+				log.info("SelfSigned RS256 Jwt: {}", jwt);
+			}else if(args.length == 3 && args[0].equals("-gcpIdToken")) {
+				String jwt = new com.dof.java.jwt.JWTTokenUtils(args[1], args[2]).gcpIdentityToken();
+				log.info("Gcp Identity Token: {}", jwt);
+			}
+			
+			else {
 				printHelp();
 			}
 		} else {
@@ -219,7 +241,9 @@ public class JWTTokenUtils {
 	private static void printHelp() {
 		StringBuilder sb = new StringBuilder("USAGE\n");
 		sb.append(" -hs256\t\t<shared-secret>\t\tgenerate hs256 jwt\n");
-		sb.append(" -hs256verify\t<jwt> <shared-secret>\tverify hs256 jwt");
+		sb.append(" -hs256verify\t<jwt> <shared-secret>\tverify hs256 jwt\n");
+		sb.append(" -rs256\t\t<base64-private-key> <service-account>\n");
+		sb.append(" -gcpIdToken\t<base64-private-key> <service-account>");
 		System.out.println(sb.toString());
 	}
 
