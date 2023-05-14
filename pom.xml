@@ -47,13 +47,14 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<addClasspath>true</addClasspath>
-							<classpathPrefix>lib/</classpathPrefix>
+							<!-- <addClasspath>true</addClasspath> -->
+							<!--<classpathPrefix>lib/</classpathPrefix>-->
 							<mainClass>com.dof.java.jwt.JWTTokenUtils</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
 			</plugin>
+			<!--
 			<plugin>
 				<artifactId>maven-dependency-plugin</artifactId>
 				<executions>
@@ -68,6 +69,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
 		</plugins>
 	</build>
 </project>
