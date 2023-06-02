@@ -92,6 +92,29 @@ public class JWTTokenUtils {
 		return Jwts.builder().setClaims(claims).setHeader(header).signWith(SignatureAlgorithm.RS256, privateKey)
 				.compact();
 	}
+	
+	public String generateOauth2SelfSignedJwt() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+
+		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(pkcs8privatekey);
+
+		KeyFactory keyFactory = KeyFactory.getInstance(RSA);
+		PrivateKey privateKey = keyFactory.generatePrivate(spec);
+
+		Map<String, Object> header = new HashMap<>();
+		header.put("type", "JWT");
+		header.put("alg", "RS256");
+
+		Map<String, Object> claims = new HashMap<>();
+		claims.put("iss", serviceAccount);
+		claims.put("sub", serviceAccount);
+		claims.put("aud", "https://www.googleapis.com/oauth2/v4/token");
+		claims.put("target_audience", "https://iotserver-wr-jbywjzjd6a-oc.a.run.app");
+		claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
+		claims.put("iat", System.currentTimeMillis() / 1000);
+
+		return Jwts.builder().setClaims(claims).setHeader(header).signWith(SignatureAlgorithm.RS256, privateKey)
+				.compact();
+	}
 
 	/**
 	 * 
@@ -222,7 +245,7 @@ public class JWTTokenUtils {
 			} else if (args[0].equals("-hs256verify") && args.length == 3) {
 				log.info(String.format("verified: %b", verifyHS256Jwt(args[1], args[2])));
 			}else if(args.length == 3 && args[0].equals("-rs256")) {
-				String jwt = new com.dof.java.jwt.JWTTokenUtils(args[1], args[2]).generateSelfSignedJwt();
+				String jwt = new com.dof.java.jwt.JWTTokenUtils(args[1], args[2]).generateOauth2SelfSignedJwt();
 				log.info("SelfSigned RS256 Jwt: {}", jwt);
 			}else if(args.length == 3 && args[0].equals("-gcpIdToken")) {
 				String jwt = new com.dof.java.jwt.JWTTokenUtils(args[1], args[2]).gcpIdentityToken();
