@@ -1,7 +1,11 @@
 package com.dof.java.jwt;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,6 +18,7 @@ import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -43,13 +48,7 @@ public class JWTTokenUtils {
 
 	// LOGGING CONFIG
 	static {
-		try(InputStream in = JWTTokenUtils.class
-				.getClassLoader().getResourceAsStream("logging.properties")){
-			LogManager.getLogManager().readConfiguration(in);
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
+		loggingConf();
 	}
 	
 	public JWTTokenUtils(String base64privateKey, String serviceAccount) {
@@ -58,17 +57,23 @@ public class JWTTokenUtils {
 			this.serviceAccount = serviceAccount;
 	}
 
-	@Deprecated
-	byte[] readPrivateKey(String key) throws IOException {
-		try (InputStream in = getClass().getClassLoader().getResourceAsStream(key);) {
+	
+	static String readPrivateKey(String filePath) throws IOException {
+		File key = new File(filePath);
+		if(!key.exists())
+			throw new IOException("Key not found");
+		String content;
+		try (InputStream in = new FileInputStream(key)) {
 			byte[] buff = new byte[4096];
 			int read;
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			while ((read = in.read(buff)) != -1) {
 				baos.write(buff, 0, read);
 			}
-			return baos.toByteArray();
+			content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
 		}
+		content = content.replaceAll("\n", "");
+		return content;
 	}
 
 	public String generateSelfSignedJwt() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
@@ -222,37 +227,32 @@ public class JWTTokenUtils {
 
 	public static void main(String... args)
 			throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ParseException, JOSEException {
-		// new JWTTokenUtils("iotserver-deployer.der").gcpIdentityToken();
-		// new JWTTokenUtils("iotserver-deployer.der",
-		// "iotserver-deployer@iot-weather-station-project.iam.gserviceaccount.com").gcpIdentityToken();
-		// new JWTTokenUtils("iot-ws-sa.der",
-		// "iot-ws-sa@iot-weather-station-project.iam.gserviceaccount.com").gcpIdentityToken();
-		// System.out.println(new JWTTokenUtils("iotws-publisher.der",
-		// "").generateSelfSignedJwtNodeMCU());
-
-		// System.out.println(verifyJwtHS256("eyJ0eXAiOiAiSldUIiwiYWxnIjoiSFMyNTYifQ.eyJhdWQiOiJpb3Qtd2VhdGhlci1zdGF0aW9uLXByb2plY3QiLCJpYXQiOjE2NjE5ODMyMDAsImV4cCI6MTY2NDQ4ODgwMH0.CqpWsz2qEyM59ohB-4tL4WIVNLDXsQGL-FsI9LyR4Ow"));
-
-		// System.out.println(JWTTokenUtils.jwtHS256Creator(null));
-		// System.out.println(new JWTTokenUtils("iotws-publisher.der",
-		// null).generateSelfSignedJwtNodeMCU());
+		
 
 		if (args == null || args.length == 0) {
 			log.info("No argument passed.");
 			printHelp();
 		} else if (args.length >= 2) {
+			log.debug("Passed arguments: {}", args.length);
+			Arrays.stream(args).forEach(arg -> { log.debug("{}\n", arg); });
+			
 			if (args.length == 2 && args[0].equals("-hs256")) {
 				log.info(generateHS256Jwt(args[1]));
 			} else if (args[0].equals("-hs256verify") && args.length == 3) {
 				log.info(String.format("verified: %b", verifyHS256Jwt(args[1], args[2])));
 			}else if(args.length == 3 && args[0].equals("-rs256")) {
-				String jwt = new com.dof.java.jwt.JWTTokenUtils(args[1], args[2]).generateOauth2SelfSignedJwt();
+				String jwt = new JWTTokenUtils(args[1], args[2]).generateOauth2SelfSignedJwt();
+				log.info("SelfSigned RS256 Jwt: {}", jwt);
+			}else if(args.length == 4 && args[0].equals("-rs256") && args[1].equals("-pem")) {
+				String base64key = readPrivateKey(args[2]);
+				base64key = base64key.replaceAll("\n", "");
+				log.debug("key:\n{}", base64key);
+				String jwt = new JWTTokenUtils(base64key, args[3]).generateOauth2SelfSignedJwt();
 				log.info("SelfSigned RS256 Jwt: {}", jwt);
 			}else if(args.length == 3 && args[0].equals("-gcpIdToken")) {
-				String jwt = new com.dof.java.jwt.JWTTokenUtils(args[1], args[2]).gcpIdentityToken();
+				String jwt = new JWTTokenUtils(args[1], args[2]).gcpIdentityToken();
 				log.info("Gcp Identity Token: {}", jwt);
-			}
-			
-			else {
+			}else {
 				printHelp();
 			}
 		} else {
@@ -260,12 +260,23 @@ public class JWTTokenUtils {
 		}
 
 	}
+	
+	private static void loggingConf() {
+		try(InputStream in = JWTTokenUtils.class
+				.getClassLoader().getResourceAsStream("logging.properties")){
+			LogManager.getLogManager().readConfiguration(in);
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
 
 	private static void printHelp() {
 		StringBuilder sb = new StringBuilder("USAGE\n");
 		sb.append(" -hs256\t\t<shared-secret>\t\tgenerate hs256 jwt\n");
 		sb.append(" -hs256verify\t<jwt> <shared-secret>\tverify hs256 jwt\n");
 		sb.append(" -rs256\t\t<base64-private-key> <service-account>\n");
+		sb.append(" -rs256\t\t -pem\t<base64-private-key> <service-account>\n");
 		sb.append(" -gcpIdToken\t<base64-private-key> <service-account>");
 		System.out.println(sb.toString());
 	}
