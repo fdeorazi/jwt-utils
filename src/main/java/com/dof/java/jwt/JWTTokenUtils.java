@@ -152,11 +152,9 @@ public class JWTTokenUtils {
 
 	}
 
-	public String gcpIdentityToken() {
+	public String gcpIdentityToken(String signedJwt) {
 		String idToken = null;
 		try {
-			String signedJwt = generateSelfSignedJwt();
-			log.debug("Generated self-signed jwt {}", signedJwt);
 			
 			URL url = new URL(GCP_TOKEN_URL);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -190,7 +188,7 @@ public class JWTTokenUtils {
 				}
 				String response = new String(baos.toByteArray());
 				idToken = response.substring(response.indexOf(":") + 2, response.length() - 2);
-				log.info("{}", response);
+				log.debug("Response {}", response);
 			}
 			conn.disconnect();
 			return idToken;
@@ -240,18 +238,30 @@ public class JWTTokenUtils {
 				log.info(generateHS256Jwt(args[1]));
 			} else if (args[0].equals("-hs256verify") && args.length == 3) {
 				log.info(String.format("verified: %b", verifyHS256Jwt(args[1], args[2])));
-			}else if(args.length == 3 && args[0].equals("-rs256")) {
+			
+			} else if(args.length == 3 && args[0].equals("-rs256")) {
 				String jwt = new JWTTokenUtils(args[1], args[2]).generateOauth2SelfSignedJwt();
 				log.info("SelfSigned RS256 Jwt: {}", jwt);
-			}else if(args.length == 4 && args[0].equals("-rs256") && args[1].equals("-pem")) {
+			
+			} else if(args.length == 4 && args[0].equals("-rs256") && args[1].equals("-pem")) {
 				String base64key = readPrivateKey(args[2]);
 				base64key = base64key.replaceAll("\n", "");
 				log.debug("key:\n{}", base64key);
 				String jwt = new JWTTokenUtils(base64key, args[3]).generateOauth2SelfSignedJwt();
 				log.info("SelfSigned RS256 Jwt: {}", jwt);
-			}else if(args.length == 3 && args[0].equals("-gcpIdToken")) {
-				String jwt = new JWTTokenUtils(args[1], args[2]).gcpIdentityToken();
-				log.info("Gcp Identity Token: {}", jwt);
+			
+			} else if(args.length == 3 && args[0].equals("-gcpIdToken")) {
+				JWTTokenUtils jwtUtils = new JWTTokenUtils(args[1], args[2]);
+				String selfSignedJwt = jwtUtils.generateOauth2SelfSignedJwt();
+				String idToken = jwtUtils.gcpIdentityToken(selfSignedJwt);
+				log.info("Gcp Identity Token: {}", idToken);
+			
+			} else if(args.length == 4 && args[0].equals("-gcpIdToken") && args[1].equals("-pem") ) {
+				String base64key = readPrivateKey(args[2]);
+				JWTTokenUtils jwtUtils = new JWTTokenUtils(base64key, args[3]);
+				String selfSignedJwt = jwtUtils.generateOauth2SelfSignedJwt();
+				String idToken = jwtUtils.gcpIdentityToken(selfSignedJwt);
+				log.info("Gcp Identity Token: {}", idToken);
 			}else {
 				printHelp();
 			}
