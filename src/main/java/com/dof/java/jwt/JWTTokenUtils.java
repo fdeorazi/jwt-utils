@@ -38,7 +38,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 
 public class JWTTokenUtils {
 	private static final Logger log = LoggerFactory.getLogger(JWTTokenUtils.class);
-
+	
+	private static final String DEFAULT_OAUTH2_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 	private static final String GCP_TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token";
 	private static final String PROJECT_ID = "iot-weather-station-project";
 	private static final String RSA = "RSA";
@@ -76,7 +77,7 @@ public class JWTTokenUtils {
 		return content;
 	}
 
-	public String generateSelfSignedJwt() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+	public String generateSelfSignedJwt(String scope) throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 
 		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(pkcs8privatekey);
 
@@ -89,7 +90,7 @@ public class JWTTokenUtils {
 
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("iss", serviceAccount);
-		claims.put("scope", "https://www.googleapis.com/auth/cloud-platform");
+		claims.put("scope", scope == null || scope.isBlank() ? DEFAULT_OAUTH2_SCOPE : scope);
 		claims.put("aud", "https://oauth2.googleapis.com/token");
 		claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
 		claims.put("iat", System.currentTimeMillis() / 1000);
@@ -227,44 +228,52 @@ public class JWTTokenUtils {
 			throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ParseException, JOSEException {
 		
 
-		if (args == null || args.length == 0) {
+		if (args == null || args.length < 2) {
 			log.info("No argument passed.");
 			printHelp();
-		} else if (args.length >= 2) {
-			log.debug("Passed arguments: {}", args.length);
-			Arrays.stream(args).forEach(arg -> { log.debug("{}\n", arg); });
+			return;
+		}
+		
+		
+		log.debug("Passed arguments: {}", args.length);
+		Arrays.stream(args).forEach(arg -> { log.debug("{}\n", arg); });
 			
-			if (args.length == 2 && args[0].equals("-hs256")) {
-				log.info(generateHS256Jwt(args[1]));
-			} else if (args[0].equals("-hs256verify") && args.length == 3) {
-				log.info(String.format("verified: %b", verifyHS256Jwt(args[1], args[2])));
-			
-			} else if(args.length == 3 && args[0].equals("-rs256")) {
-				String jwt = new JWTTokenUtils(args[1], args[2]).generateOauth2SelfSignedJwt();
-				log.info("SelfSigned RS256 Jwt: {}", jwt);
-			
-			} else if(args.length == 4 && args[0].equals("-rs256") && args[1].equals("-pem")) {
-				String base64key = readPrivateKey(args[2]);
-				base64key = base64key.replaceAll("\n", "");
-				log.debug("key:\n{}", base64key);
-				String jwt = new JWTTokenUtils(base64key, args[3]).generateOauth2SelfSignedJwt();
-				log.info("SelfSigned RS256 Jwt: {}", jwt);
-			
-			} else if(args.length == 3 && args[0].equals("-gcpIdToken")) {
-				JWTTokenUtils jwtUtils = new JWTTokenUtils(args[1], args[2]);
-				String selfSignedJwt = jwtUtils.generateOauth2SelfSignedJwt();
-				String idToken = jwtUtils.gcpIdentityToken(selfSignedJwt);
-				log.info("Gcp Identity Token: {}", idToken);
-			
-			} else if(args.length == 4 && args[0].equals("-gcpIdToken") && args[1].equals("-pem") ) {
+		if (args.length == 2 && args[0].equals("-hs256")) {
+			log.info(generateHS256Jwt(args[1]));
+		} else if (args[0].equals("-hs256verify") && args.length == 3) {
+			log.info(String.format("verified: %b", verifyHS256Jwt(args[1], args[2])));
+		
+		} else if(args.length == 3 && args[0].equals("-rs256")) {
+			String jwt = new JWTTokenUtils(args[1], args[2]).generateOauth2SelfSignedJwt();
+			log.info("SelfSigned RS256 Jwt: {}", jwt);
+		
+		} else if(args.length == 4 && args[0].equals("-rs256") && args[1].equals("-pem")) {
+			String base64key = readPrivateKey(args[2]);
+			base64key = base64key.replaceAll("\n", "");
+			log.debug("key:\n{}", base64key);
+			String jwt = new JWTTokenUtils(base64key, args[3]).generateOauth2SelfSignedJwt();
+			log.info("SelfSigned RS256 Jwt: {}", jwt);
+		
+		} else if(args.length == 3 && args[0].equals("-gcpIdToken")) {
+			JWTTokenUtils jwtUtils = new JWTTokenUtils(args[1], args[2]);
+			String selfSignedJwt = jwtUtils.generateOauth2SelfSignedJwt();
+			String idToken = jwtUtils.gcpIdentityToken(selfSignedJwt);
+			log.info("Gcp Identity Token: {}", idToken);
+		
+		} else if(args.length == 4 && args[0].equals("-gcpIdToken") && args[1].equals("-pem") ) {
+			String base64key = readPrivateKey(args[2]);
+			JWTTokenUtils jwtUtils = new JWTTokenUtils(base64key, args[3]);
+			String selfSignedJwt = jwtUtils.generateOauth2SelfSignedJwt();
+			String idToken = jwtUtils.gcpIdentityToken(selfSignedJwt);
+			log.info("Gcp Identity Token: {}", idToken);
+		
+		} else if(args.length == 4 && args[0].equals("-accessToken") && args[1].equals("-pem") ) {
 				String base64key = readPrivateKey(args[2]);
 				JWTTokenUtils jwtUtils = new JWTTokenUtils(base64key, args[3]);
-				String selfSignedJwt = jwtUtils.generateOauth2SelfSignedJwt();
+				String selfSignedJwt = jwtUtils.generateSelfSignedJwt("https://www.googleapis.com/auth/pubsub");
 				String idToken = jwtUtils.gcpIdentityToken(selfSignedJwt);
-				log.info("Gcp Identity Token: {}", idToken);
-			}else {
-				printHelp();
-			}
+				log.info("Gcp Oauth 2 Access Token: {}", idToken);
+			
 		} else {
 			printHelp();
 		}
@@ -287,7 +296,9 @@ public class JWTTokenUtils {
 		sb.append(" -hs256verify\t<jwt> <shared-secret>\tverify hs256 jwt\n");
 		sb.append(" -rs256\t\t<base64-private-key> <service-account>\n");
 		sb.append(" -rs256\t\t -pem\t<base64-private-key> <service-account>\n");
-		sb.append(" -gcpIdToken\t<base64-private-key> <service-account>");
+		sb.append(" -gcpIdToken\t<base64-private-key> <service-account>\n");
+		sb.append(" -gcpIdToken\t-pem<base64-private-key> <service-account>\n");
+		sb.append(" -accessToken\t-pem<base64-private-key> <service-account>\n");
 		System.out.println(sb.toString());
 	}
 
