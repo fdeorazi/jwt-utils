@@ -191,7 +191,9 @@ public class JWTTokenUtils {
 					baos.write(buff, 0, read);
 				}
 				String response = new String(baos.toByteArray());
-				idToken = response.substring(response.indexOf(":") + 2, response.length() - 2);
+				int start=response.indexOf(":")+2;
+				int end=response.indexOf("\"", start);
+				idToken = end != -1 ? response.substring(start, end) : response.substring(start);
 				log.debug("Response {}", response);
 			}
 			conn.disconnect();
