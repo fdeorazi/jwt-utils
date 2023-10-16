@@ -1,7 +1,6 @@
 package com.dof.java.jwt;
 
 /**
- *
  * Builder class for JwtTokenUtils.
  * 
  *
@@ -16,7 +15,10 @@ public class JwtTokenUtilsBuilder {
   String sharedSecret;
   String scope;
   String signedJwt;
-
+  String keyFile;
+  String targetServiceUrl;
+  TargetTokenType targetTokenType;
+  
 
   public JwtTokenUtilsBuilder setProjectId(String projectId) {
     this.projectId = projectId;
@@ -40,6 +42,23 @@ public class JwtTokenUtilsBuilder {
 
   public JwtTokenUtilsBuilder setSignedJwt(String signedJwt) {
     this.signedJwt = signedJwt;
+    return this;
+  }
+
+  public JwtTokenUtilsBuilder setKeyFile(String keyFile) {
+    this.keyFile = keyFile;
+    return this;
+  }
+
+
+  public JwtTokenUtilsBuilder setTargetServiceUrl(String targetServiceUrl) {
+    this.targetServiceUrl = targetServiceUrl;
+    return this;
+  }
+
+
+  public JwtTokenUtilsBuilder setTargetTokenType(TargetTokenType targetTokenType) {
+    this.targetTokenType = targetTokenType;
     return this;
   }
 

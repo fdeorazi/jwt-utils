@@ -47,6 +47,26 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.23.1</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
+			<version>2.7.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path-assert</artifactId>
+			<version>2.7.0</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<profiles>
@@ -63,7 +83,7 @@
 								<manifest>
 									<addClasspath>true</addClasspath>
 									<classpathPrefix>lib/</classpathPrefix>
-									<mainClass>com.dof.java.jwt.JwtTokenUtils</mainClass>
+									<mainClass>com.dof.java.jwt.JwtTokenUtilsConsole</mainClass>
 								</manifest>
 							</archive>
 						</configuration>
@@ -97,7 +117,7 @@
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>com.dof.java.jwt.JwtTokenUtils</mainClass>
+							<mainClass>com.dof.java.jwt.JwtTokenUtilsConsole</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
@@ -116,6 +136,41 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.6</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<!-- report in package phase -->
+					<execution>
+						<id>report-post-package</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<!-- report in test phase -->
+					<execution>
+						<id>report-post-test</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.1.0</version>
 			</plugin>
 		</plugins>
 	</build>
