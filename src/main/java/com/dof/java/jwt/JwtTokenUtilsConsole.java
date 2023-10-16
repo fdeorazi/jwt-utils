@@ -26,13 +26,7 @@ import com.nimbusds.jose.JOSEException;
  *
  */
 public class JwtTokenUtilsConsole {
-  private static final Logger log = LoggerFactory.getLogger(JwtTokenUtils.class);
-  /*
-   * static final String KEY_FILE = "-keyfile"; static final String RS256 = "-rs256"; static final
-   * String ID_TOKEN = "-gcpIdToken"; static final String ACCESS_TOKEN = "-accessToken"; static
-   * final String HS256 = "-hs256"; static final String HS256_VERIFY = "-hs256verify"; static final
-   * String SECRET = "-secret"; static final String PROJECT_ID = "-projectId";
-   */
+  private static final Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsole.class);
 
   /**
    * Program available parameters.

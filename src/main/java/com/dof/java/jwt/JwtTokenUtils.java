@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -21,6 +22,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.nimbusds.jose.JOSEException;
@@ -58,12 +61,24 @@ public class JwtTokenUtils {
   private String keyFile;
   private TargetTokenType targetTokenType;
 
+  Properties props;
+
+  void loadProperties() {
+    try (InputStream in = new FileInputStream(
+        this.getClass().getResource("/application.properties").getPath())) {
+      props = new Properties();
+      props.load(in);
+    } catch (IOException e) {
+      throw new RuntimeException("Properies file not found.");
+    }
+  }
 
   public static JwtTokenUtilsBuilder builder() {
     return new JwtTokenUtilsBuilder();
   }
 
   JwtTokenUtils(JwtTokenUtilsBuilder builder) {
+    loadProperties();
     this.projectId = builder.projectId;
     this.serviceAccount = builder.serviceAccount;
     this.sharedSecret = builder.sharedSecret;
@@ -94,8 +109,9 @@ public class JwtTokenUtils {
       }
       content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
     }
-    content = content.replace("-----BEGIN PRIVATE KEY-----\n", "")
-        .replace("-----END PRIVATE KEY-----\n", "").replace("\n", "");
+
+    content = content.replace("-----BEGIN PRIVATE KEY-----" + System.lineSeparator(), "")
+        .replace("-----END PRIVATE KEY-----", "").replace(System.lineSeparator(), "");
     return content;
   }
 
@@ -160,11 +176,11 @@ public class JwtTokenUtils {
     header.put("alg", "RS256");
 
     Map<String, Object> claims = new HashMap<>();
-    
+
     if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
       claims.put("scope", scope == null || scope.isBlank() ? DEFAULT_OAUTH2_SCOPE : scope);
     }
-    
+
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
       claims.put("target_audience", targetServiceUrl);
       claims.put("sub", serviceAccount);
@@ -180,10 +196,10 @@ public class JwtTokenUtils {
     KeyFactory keyFactory = KeyFactory.getInstance(RSA);
     PrivateKey privateKey = keyFactory.generatePrivate(spec);
 
-    return Jwts.builder().setClaims(claims).setHeader(header)
+    String selfSignedJwt = Jwts.builder().setClaims(claims).setHeader(header)
         .signWith(SignatureAlgorithm.RS256, privateKey).compact();
 
-
+    return gcpToken(selfSignedJwt);
   }
 
   /**
@@ -224,7 +240,7 @@ public class JwtTokenUtils {
    * @param signedJwt rs256 signed jwt
    * @return the finat gcp access token
    */
-  public String gcpToken(String signedJwt) {
+  String gcpToken(String signedJwt) {
     String idToken = null;
     try {
 
