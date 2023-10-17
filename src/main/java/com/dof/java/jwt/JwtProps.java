@@ -1,5 +1,6 @@
 package com.dof.java.jwt;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,15 +22,17 @@ public enum JwtProps {
   java.util.Properties props;
 
   void loadProperties() {
-    try (InputStream in =
-        new FileInputStream(this.getClass().getResource("/application.properties").getPath())) {
+    try (InputStream in = new FileInputStream(
+        this.getClass().getClassLoader().getResource("application.properties").getPath())) {
       props = new java.util.Properties();
       props.load(in);
     } catch (IOException e) {
+      e.printStackTrace();
+      System.err.println(e.getMessage());
       throw new RuntimeException("Properies file not found.");
     }
   }
-  
+
   /**
    *
    * @param prop

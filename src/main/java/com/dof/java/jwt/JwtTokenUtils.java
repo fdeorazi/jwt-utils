@@ -42,7 +42,6 @@ public class JwtTokenUtils {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenUtils.class);
 
   private static final String RSA = "RSA";
-  // private static final String TARGET_AUDIENCE = "https://iotserver-wr-jbywjzjd6a-oc.a.run.app";
 
   private String projectId;
   private String serviceAccount;
@@ -115,7 +114,7 @@ public class JwtTokenUtils {
       throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     Assert.present(serviceAccount, "Service account cannot be null.");
     Assert.present(targetServiceUrl, "Target service url cannot be null.");
-    Assert.present(targetTokenType, "");
+    Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
 
     if (keyFile != null) {
       base64privateKey = readPrivateKey(keyFile);
@@ -289,6 +288,12 @@ public class JwtTokenUtils {
     return Jwts.builder().setHeader(headers).setClaims(claims)
         .signWith(SignatureAlgorithm.HS256, sharedSecret.getBytes(StandardCharsets.UTF_8))
         .compact();
+  }
+  
+  @Cmd(param = {"idtoken", "access-token"})
+  public String generateIdentityToken() {
+    String ssjwt = generateHs256Jwt();
+    return gcpToken(ssjwt);
   }
 
 }

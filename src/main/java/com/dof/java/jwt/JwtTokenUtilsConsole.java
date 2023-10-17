@@ -36,10 +36,11 @@ public class JwtTokenUtilsConsole {
    */
   public enum Parameters {
     HS256("hs256", "hs256"), HS256_VERIFY("hs256-verify", "hs256-verify"), SSJWT("ssjwt",
-        "ssjwt"), TYPE("-t", "--type"), SECRET("-s", "--secret"), PROJECT_ID("-p",
-            "--project-id"), BASE64_KEY("-k", "--key"), KEY_FILE("-kf",
-                "--key-file"), SERVICE_ACCOUNT("-sa",
-                    "--service-account"), SIGNED_JWT("-j", "--signed-jwt");
+        "ssjwt"), ID_TOKEN("idtoken", "idtoken"), ACCESS_TOKEN("access-token",
+            "access-token"), TYPE("-t", "--type"), SECRET("-s", "--secret"), PROJECT_ID("-p",
+                "--project-id"), BASE64_KEY("-k", "--key"), KEY_FILE("-kf",
+                    "--key-file"), SERVICE_ACCOUNT("-sa", "--service-account"), SIGNED_JWT("-j",
+                        "--signed-jwt"), TARGET_SERVICE("-ts", "--target-service");
 
     String shortParam;
     String verboseParam;
@@ -78,34 +79,48 @@ public class JwtTokenUtilsConsole {
     Iterator<String> iter = new ArrayIterator<>(args);
     String operation = "";
     while (iter.hasNext()) {
-      String nextParam = iter.next();
-      if (Parameters.HS256.isEqual(nextParam) || Parameters.HS256_VERIFY.isEqual(nextParam)
-          || Parameters.SSJWT.isEqual(nextParam)) {
-        operation = nextParam;
-      } else if (Parameters.TYPE.isEqual(nextParam)) {
+      String param = iter.next();
+      if (Parameters.HS256.isEqual(param) || Parameters.HS256_VERIFY.isEqual(param)
+          || Parameters.SSJWT.isEqual(param) || Parameters.ID_TOKEN.isEqual(param)
+          || Parameters.ACCESS_TOKEN.isEqual(param)) {
+        operation = param;
+        if (Parameters.ID_TOKEN.isEqual(param)) {
+          builder.setTargetTokenType(TargetTokenType.ID_TOKEN);
+        }
+        if (Parameters.ACCESS_TOKEN.isEqual(param)) {
+          builder.setTargetTokenType(TargetTokenType.ACCESS_TOKEN);
+        }
+      } else if (Parameters.TYPE.isEqual(param)) {
         Assert.hasNext(iter);
-        builder.setTargetTokenType(TargetTokenType.valueOf(iter.next().toUpperCase()));
+        builder.setTargetTokenType(TargetTokenType.get(iter.next()));
 
-      } else if (Parameters.SECRET.isEqual(nextParam)) {
+      } else if (Parameters.SECRET.isEqual(param)) {
         Assert.hasNext(iter);
         builder.setSharedSecret(iter.next());
 
-      } else if (Parameters.PROJECT_ID.isEqual(nextParam)) {
+      } else if (Parameters.PROJECT_ID.isEqual(param)) {
         Assert.hasNext(iter);
         builder.setProjectId(iter.next());
 
-      } else if (Parameters.BASE64_KEY.isEqual(nextParam)) {
+      } else if (Parameters.BASE64_KEY.isEqual(param)) {
         Assert.hasNext(iter);
         builder.setBase64PrivateKey(iter.next());
 
-      } else if (Parameters.KEY_FILE.isEqual(nextParam)) {
+      } else if (Parameters.KEY_FILE.isEqual(param)) {
+        Assert.hasNext(iter);
         builder.setKeyFile(iter.next());
 
-      } else if (Parameters.SERVICE_ACCOUNT.isEqual(nextParam)) {
+      } else if (Parameters.SERVICE_ACCOUNT.isEqual(param)) {
+        Assert.hasNext(iter);
         builder.setServiceAccount(iter.next());
 
-      } else if (Parameters.SIGNED_JWT.isEqual(nextParam)) {
+      } else if (Parameters.SIGNED_JWT.isEqual(param)) {
+        Assert.hasNext(iter);
         builder.setSignedJwt(iter.next());
+
+      } else if (Parameters.TARGET_SERVICE.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setTargetServiceUrl(param);
       }
     }
 
@@ -202,11 +217,10 @@ public class JwtTokenUtilsConsole {
     sb.append("\033[1;37mUSAGE\033[0m\n");
     sb.append(" hs256\t\t-s|--secret\t\t\tgenerate hs256 jwt\n");
     sb.append(" hs256verify\t-j|--signed-jwt\t\tverify hs256 jwt\n");
-    sb.append(" ssjwt\t\t-t|--type [idtoken|access-token]  -k|--key  -sa|--service-account\n");
     sb.append(
-        " ssjwt\t\t-t|--type [idtoken|access-token]  -kf|--key-file  -sa|--service-account\n");
+        " ssjwt\t\t-t|--type [idtoken|access-token]  -k|--key|-kf|--key-file  -ts|--target-service  -sa|--service-account\n");
     sb.append(" idtoken\t-k|--key  -sa|--service-account\n");
-    sb.append(" access-token\t\n");
+    sb.append(" access-token\t-k|--key  -sa|--service-account\n");
     log.info(sb.toString());
   }
 
@@ -217,8 +231,13 @@ public class JwtTokenUtilsConsole {
    */
   public static void main(String[] args) {
     try {
-      if (args == null || args.length < 2) {
-        log.info("No argument passed.");
+      if (args == null || args.length < 1) {
+        log.info("Missed required parameters (2 at least).");
+        printHelp();
+        return;
+      }
+
+      if (args[args.length - 1].equalsIgnoreCase("-help")) {
         printHelp();
         return;
       }
