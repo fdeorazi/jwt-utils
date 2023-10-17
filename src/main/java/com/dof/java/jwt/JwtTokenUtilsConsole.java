@@ -17,6 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.util.ArrayIterator;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.shaded.gson.Gson;
+import com.nimbusds.jose.shaded.gson.GsonBuilder;
+import com.nimbusds.jose.shaded.gson.JsonElement;
+import com.nimbusds.jose.shaded.gson.JsonParser;
 
 /**
  * Entry point class to use library from command line.
@@ -69,10 +73,8 @@ public class JwtTokenUtilsConsole {
         .findFirst();
   }
 
-  private static void evalMethod(String... args)
-      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, ParseException,
-      JOSEException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    String finalJwt;
+  private void evalMethod(String... args)
+      throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
     JwtTokenUtilsBuilder builder = JwtTokenUtils.builder();
 
@@ -120,7 +122,7 @@ public class JwtTokenUtilsConsole {
 
       } else if (Parameters.TARGET_SERVICE.isEqual(param)) {
         Assert.hasNext(iter);
-        builder.setTargetServiceUrl(param);
+        builder.setTargetServiceUrl(iter.next());
       }
     }
 
@@ -129,64 +131,32 @@ public class JwtTokenUtilsConsole {
     if (optional.isPresent()) {
       // optional.get().getReturnType()
       Object result = optional.get().invoke(builder.build());
+      if(result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation)) {
+        printVerbose((String) result, args);
+      }
       log.info((String) result);
     } else {
       throw new RuntimeException("Miss method");
     }
-
-    /*
-     * if (args.length >= 2 && args[0].equals(HS256) && args[1] != null) { finalJwt =
-     * JwtTokenUtils.builder().setSharedSecret(args[1]).build().generateHs256Jwt(); if
-     * (logVerbose(args)) { jwtVerbose(finalJwt); } log.info(finalJwt);
-     * 
-     * } else if (args[0].equals(HS256_VERIFY) && args.length >= 3) { Boolean verified =
-     * JwtTokenUtils.builder().setSignedJwt(args[1]).setSharedSecret(args[2])
-     * .build().verifyHs256Jwt(); log.info("verified: {}", verified);
-     * 
-     * } else if (args.length >= 3 && args[0].equals(RS256)) { finalJwt =
-     * JwtTokenUtils.builder().setProjectId(args[1]).setBase64PrivateKey(args[2]).build()
-     * .generateSelfSignedJwtForIdToken();
-     * 
-     * log.info(finalJwt);
-     * 
-     * } else if (args.length >= 4 && args[0].equals(RS256) && args[1].equals(KEY_FILE)) { String
-     * base64key = readPrivateKey(args[2]); base64key = base64key.replace("\n", "");
-     * log.trace("key:\n{}", base64key);
-     * 
-     * finalJwt = JwtTokenUtils.builder().setProjectId(args[3]).setBase64PrivateKey(base64key)
-     * .setServiceAccount(args[3]).build().generateSelfSignedJwtForIdToken();
-     * 
-     * log.info(finalJwt);*
-     * 
-     * } else if (args.length == 3 && args[0].equals(KEY_FILE)) { JwtTokenUtils jwtUtils = new
-     * JwtTokenUtils(args[1], args[2]); String selfSignedJwt =
-     * jwtUtils.generateSelfSignedJwtForIdToken(); String idToken =
-     * jwtUtils.gcpToken(selfSignedJwt); log.info("Gcp Identity Token: {}", idToken);
-     * 
-     * } else if (args.length == 4 && args[0].equals(ID_TOKEN) && args[1].equals(KEY_FILE)) { String
-     * base64key = readPrivateKey(args[2]); JwtTokenUtils jwtUtils = new JwtTokenUtils(base64key,
-     * args[3]); String selfSignedJwt = jwtUtils.generateSelfSignedJwtForIdToken(); String idToken =
-     * jwtUtils.gcpToken(selfSignedJwt); log.info("Gcp Identity Token: {}", idToken);
-     * 
-     * } else if (args.length >= 4 && args[0].equals(ACCESS_TOKEN) && args[1].equals(KEY_FILE)) {
-     * String base64key = readPrivateKey(args[2]); String serviceAccount = args[3]; JwtTokenUtils
-     * jwtUtils = new JwtTokenUtils(base64key, serviceAccount); String scope = args.length > 4 ?
-     * args[4] : null; String selfSignedJwt = jwtUtils.generateSelfSignedJwtForAccessToken(scope);
-     * String idToken = jwtUtils.gcpToken(selfSignedJwt); log.info("Gcp Oauth 2 Access Token: {}",
-     * idToken);
-     * 
-     * } else { printHelp(); }
-     */
   }
-
-  private static void jwtVerbose(String jwt) {
-    String[] jwtSplitted = jwt.split("\\.");
-    String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
-    String jwtClaims = new String(Base64.getDecoder().decode(jwtSplitted[1]));
-    log.info("HEADERS:");
-    log.info(jwtHeaders);
-    log.info("CLAIMS:");
-    log.info(jwtClaims);
+  
+  private void printVerbose(String jwt, String... params) {
+    if(checkForParam("-v", params) || checkForParam("--verbose", params)) {
+      
+      String[] jwtSplitted = jwt.split("\\.");
+      String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
+      String jwtClaims = new String(Base64.getDecoder().decode(jwtSplitted[1]));
+      log.info("HEADERS:");
+      log.info(prettyPrint(jwtHeaders));
+      log.info("CLAIMS:");
+      log.info(prettyPrint(jwtClaims));
+    }
+  }
+  
+  String prettyPrint(String json) {
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    JsonElement jsonElement = JsonParser.parseString(json);
+    return gson.toJson(jsonElement);
   }
 
   private static void loggingConf() {
@@ -199,10 +169,6 @@ public class JwtTokenUtilsConsole {
     }
   }
 
-
-  private static boolean logVerbose(String... params) {
-    return checkForParam("-v", params) || checkForParam("--verbose", params);
-  }
 
   private static boolean checkForParam(String toFind, String... params) {
     return Stream.of(params).anyMatch(p -> p.equalsIgnoreCase(toFind));
@@ -248,7 +214,7 @@ public class JwtTokenUtilsConsole {
         log.debug("{}\n", arg);
       });
 
-      evalMethod(args);
+      new JwtTokenUtilsConsole().evalMethod(args);
 
     } catch (Exception e) {
       log.error(e.getMessage(), e);

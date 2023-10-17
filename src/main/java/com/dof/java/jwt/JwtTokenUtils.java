@@ -93,8 +93,10 @@ public class JwtTokenUtils {
       content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
     }
 
-    content = content.replace("-----BEGIN PRIVATE KEY-----" + System.lineSeparator(), "")
-        .replace("-----END PRIVATE KEY-----", "").replace(System.lineSeparator(), "");
+    content = content.replace("-----BEGIN PRIVATE KEY-----", "")
+        .replace("-----END PRIVATE KEY-----", "")
+        .replaceAll("\r\n|\n|\r", "");
+    log.debug("Read key:\n'{}'",content);
     return content;
   }
 
@@ -291,8 +293,8 @@ public class JwtTokenUtils {
   }
   
   @Cmd(param = {"idtoken", "access-token"})
-  public String generateIdentityToken() {
-    String ssjwt = generateHs256Jwt();
+  public String generateToken() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    String ssjwt = generateSelfSignedJwt();
     return gcpToken(ssjwt);
   }
 

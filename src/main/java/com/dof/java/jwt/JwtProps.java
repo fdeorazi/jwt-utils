@@ -22,8 +22,8 @@ public enum JwtProps {
   java.util.Properties props;
 
   void loadProperties() {
-    try (InputStream in = new FileInputStream(
-        this.getClass().getClassLoader().getResource("application.properties").getPath())) {
+    try (InputStream in =
+        this.getClass().getResourceAsStream("/application.properties")) {
       props = new java.util.Properties();
       props.load(in);
     } catch (IOException e) {
