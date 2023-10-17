@@ -61,4 +61,20 @@ class JwtTokenUtilRs256Test {
     MatcherAssert.assertThat(headers, JsonPathMatchers.isJson());
     MatcherAssert.assertThat(claims, JsonPathMatchers.isJson());
   }
+  
+  @Test
+  void givenAllParams_whenGenRs256ForAccessToken_thenReturnCorrectJwt() {
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().setServiceAccount(SERVICE_ACCOUNT)
+        .setTargetServiceUrl(TARGET_SERVICE).setKeyFile("test.pem")
+        .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build();
+    String jwt = assertDoesNotThrow(() -> jwtTokenUtils.generateSelfSignedJwt());
+    assertThat(jwt).isNotBlank();
+    String[] splittedJwt = jwt.split("\\.");
+    assertThat(splittedJwt).hasSize(3);
+    String headers = new String(Base64.getDecoder().decode(splittedJwt[0]));
+    String claims = new String(Base64.getDecoder().decode(splittedJwt[1]));
+
+    MatcherAssert.assertThat(headers, JsonPathMatchers.isJson());
+    MatcherAssert.assertThat(claims, JsonPathMatchers.isJson());
+  }
 }

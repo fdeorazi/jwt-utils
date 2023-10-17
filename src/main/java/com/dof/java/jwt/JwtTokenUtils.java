@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -21,9 +20,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.nimbusds.jose.JOSEException;
@@ -44,10 +41,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 public class JwtTokenUtils {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenUtils.class);
 
-  private static final String DEFAULT_OAUTH2_SCOPE =
-      "https://www.googleapis.com/auth/cloud-platform";
-  private static final String GCP_TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token";
-
   private static final String RSA = "RSA";
   // private static final String TARGET_AUDIENCE = "https://iotserver-wr-jbywjzjd6a-oc.a.run.app";
 
@@ -63,22 +56,13 @@ public class JwtTokenUtils {
 
   Properties props;
 
-  void loadProperties() {
-    try (InputStream in = new FileInputStream(
-        this.getClass().getResource("/application.properties").getPath())) {
-      props = new Properties();
-      props.load(in);
-    } catch (IOException e) {
-      throw new RuntimeException("Properies file not found.");
-    }
-  }
+
 
   public static JwtTokenUtilsBuilder builder() {
     return new JwtTokenUtilsBuilder();
   }
 
   JwtTokenUtils(JwtTokenUtilsBuilder builder) {
-    loadProperties();
     this.projectId = builder.projectId;
     this.serviceAccount = builder.serviceAccount;
     this.sharedSecret = builder.sharedSecret;
@@ -115,38 +99,6 @@ public class JwtTokenUtils {
     return content;
   }
 
-  /**
-   * 
-   * @param scope
-   * @return
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
-   * @throws IOException
-   */
-  public String generateSelfSignedJwtForAccessToken(String scope)
-      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-    Assert.present(scope, "Scope cannot be null");
-
-
-
-    Map<String, Object> header = new HashMap<>();
-    header.put("type", "JWT");
-    header.put("alg", "RS256");
-
-    Map<String, Object> claims = new HashMap<>();
-    claims.put("iss", serviceAccount);
-    claims.put("scope", scope == null || scope.isBlank() ? DEFAULT_OAUTH2_SCOPE : scope);
-    claims.put("aud", GCP_TOKEN_URL);
-    claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
-    claims.put("iat", System.currentTimeMillis() / 1000);
-
-    PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(base64privateKey.getBytes());
-    KeyFactory keyFactory = KeyFactory.getInstance(RSA);
-    PrivateKey privateKey = keyFactory.generatePrivate(spec);
-
-    return Jwts.builder().setClaims(claims).setHeader(header)
-        .signWith(SignatureAlgorithm.RS256, privateKey).compact();
-  }
 
 
 
@@ -158,12 +110,12 @@ public class JwtTokenUtils {
    * @throws InvalidKeySpecException
    * @throws IOException
    */
-  @Cmd(param = "idtoken")
+  @Cmd(param = "ssjwt")
   public String generateSelfSignedJwt()
       throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     Assert.present(serviceAccount, "Service account cannot be null.");
     Assert.present(targetServiceUrl, "Target service url cannot be null.");
-
+    Assert.present(targetTokenType, "");
 
     if (keyFile != null) {
       base64privateKey = readPrivateKey(keyFile);
@@ -178,7 +130,8 @@ public class JwtTokenUtils {
     Map<String, Object> claims = new HashMap<>();
 
     if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
-      claims.put("scope", scope == null || scope.isBlank() ? DEFAULT_OAUTH2_SCOPE : scope);
+      claims.put("scope",
+          scope == null || scope.isBlank() ? JwtProps.GCP_OAUTH2_SCOPE.val() : scope);
     }
 
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
@@ -187,7 +140,7 @@ public class JwtTokenUtils {
     }
 
     claims.put("iss", serviceAccount);
-    claims.put("aud", GCP_TOKEN_URL);
+    claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
     claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
     claims.put("iat", System.currentTimeMillis() / 1000);
 
@@ -196,10 +149,8 @@ public class JwtTokenUtils {
     KeyFactory keyFactory = KeyFactory.getInstance(RSA);
     PrivateKey privateKey = keyFactory.generatePrivate(spec);
 
-    String selfSignedJwt = Jwts.builder().setClaims(claims).setHeader(header)
+    return Jwts.builder().setClaims(claims).setHeader(header)
         .signWith(SignatureAlgorithm.RS256, privateKey).compact();
-
-    return gcpToken(selfSignedJwt);
   }
 
   /**
@@ -244,7 +195,7 @@ public class JwtTokenUtils {
     String idToken = null;
     try {
 
-      URL url = new URL(GCP_TOKEN_URL);
+      URL url = new URL(JwtProps.GCP_TOKEN_URL.val());
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
       conn.setRequestMethod("POST");
@@ -261,8 +212,8 @@ public class JwtTokenUtils {
       }
 
       if (conn.getResponseCode() != 200) {
-        String message = String.format("%s return error with%nstatus %s%nmessage %s", GCP_TOKEN_URL,
-            conn.getResponseCode(), conn.getResponseMessage());
+        String message = String.format("%s return error with%nstatus %s%nmessage %s",
+            JwtProps.GCP_TOKEN_URL.val(), conn.getResponseCode(), conn.getResponseMessage());
         throw new RuntimeException(message);
       }
 
