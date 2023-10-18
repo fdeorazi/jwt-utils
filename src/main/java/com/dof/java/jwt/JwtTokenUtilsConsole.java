@@ -37,15 +37,16 @@ public class JwtTokenUtilsConsole {
   public enum Parameters {
     HS256("hs256", "hs256", 1, new int[] {7}), HS256_VERIFY("hs256-verify", "hs256-verify", 2,
         new int[] {7, 12}), SSJWT("ssjwt", "ssjwt", 3, new int[] {6, 9, 10, 13, 11}), ID_TOKEN(
-            "idtoken", "idtoken", 4, new int[] {9, 10, 13, 11}), ACCESS_TOKEN("access-token",
-                "access-token", 5,
+            "idtoken", "idtoken", 4,
+            new int[] {9, 10, 13, 11}), ACCESS_TOKEN("access-token", "access-token", 5,
                 new int[] {9, 10, 13, 11}), TYPE("-t", "--type", 6, new int[] {}), SECRET("-s",
                     "--secret", 7, new int[] {}), PROJECT_ID("-p", "--project-id", 8,
                         new int[] {}), BASE64_KEY("-k", "--key", 9, new int[] {}), KEY_FILE("-kf",
-                            "--key-file", 10, new int[] {}), SERVICE_ACCOUNT("-sa",
-                                "--service-account", 11, new int[] {}), SIGNED_JWT("-j",
-                                    "--signed-jwt", 12, new int[] {}), TARGET_SERVICE("-ts",
-                                        "--target-service", 13, new int[] {});
+                            "--key-file", 10,
+                            new int[] {}), SERVICE_ACCOUNT("-sa", "--service-account", 11,
+                                new int[] {}), SIGNED_JWT("-j", "--signed-jwt", 12,
+                                    new int[] {}), TARGET_SERVICE("-ts", "--target-service", 13,
+                                        new int[] {}), VERBOSE("-v", "--verbose", 14, new int[] {});
 
     String shortParam;
     String verboseParam;
@@ -203,11 +204,10 @@ public class JwtTokenUtilsConsole {
 
     sb.append("\n\033[1;37mPARAMETERS:\033[0m\n");
     Stream.of(Parameters.values()).filter(p -> p.shortParam.startsWith("-")).forEach(p -> {
-      String description = "";
+
       JwtProps jwtp = null;
       try {
         jwtp = JwtProps.valueOf("CMD_FLAGS_" + (p.toString()));
-        log.info(jwtp.val());
       } catch (Exception e) {
       }
 
@@ -215,13 +215,6 @@ public class JwtTokenUtilsConsole {
           .append(jwtp != null ? jwtp.val() : "").append("\n");
     });
 
-    /*
-     * sb.append(" hs256\t\t-s|--secret\t\t\tgenerate hs256 jwt\n");
-     * sb.append(" hs256verify\t-j|--signed-jwt\t\tverify hs256 jwt\n"); sb.append(
-     * " ssjwt\t\t-t|--type [idtoken|access-token]  -k|--key|-kf|--key-file  -ts|--target-service  -sa|--service-account\n"
-     * ); sb.append(" idtoken\t-k|--key  -sa|--service-account\n");
-     * sb.append(" access-token\t-k|--key  -sa|--service-account\n");
-     */
     log.info(sb.toString());
   }
 
