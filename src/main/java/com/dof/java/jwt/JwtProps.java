@@ -11,7 +11,8 @@ import java.io.InputStream;
  *
  */
 public enum JwtProps {
-  GCP_OAUTH2_SCOPE("gcp.oauth2.scope"), GCP_TOKEN_URL("gcp.token.url");
+  GCP_OAUTH2_SCOPE("gcp.oauth2.scope"), GCP_TOKEN_URL("gcp.token.url"), CMD_HELP_USAGE(
+      "cmd.help.usage"), CMD_FLAGS_TYPE("cmd.flags.type");
 
   String key;
 
@@ -22,8 +23,7 @@ public enum JwtProps {
   java.util.Properties props;
 
   void loadProperties() {
-    try (InputStream in =
-        this.getClass().getResourceAsStream("/application.properties")) {
+    try (InputStream in = this.getClass().getResourceAsStream("/application.properties")) {
       props = new java.util.Properties();
       props.load(in);
     } catch (IOException e) {

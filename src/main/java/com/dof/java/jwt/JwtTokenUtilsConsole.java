@@ -4,9 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Iterator;
@@ -16,7 +13,6 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.util.ArrayIterator;
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.shaded.gson.Gson;
 import com.nimbusds.jose.shaded.gson.GsonBuilder;
 import com.nimbusds.jose.shaded.gson.JsonElement;
@@ -39,24 +35,36 @@ public class JwtTokenUtilsConsole {
    *
    */
   public enum Parameters {
-    HS256("hs256", "hs256"), HS256_VERIFY("hs256-verify", "hs256-verify"), SSJWT("ssjwt",
-        "ssjwt"), ID_TOKEN("idtoken", "idtoken"), ACCESS_TOKEN("access-token",
-            "access-token"), TYPE("-t", "--type"), SECRET("-s", "--secret"), PROJECT_ID("-p",
-                "--project-id"), BASE64_KEY("-k", "--key"), KEY_FILE("-kf",
-                    "--key-file"), SERVICE_ACCOUNT("-sa", "--service-account"), SIGNED_JWT("-j",
-                        "--signed-jwt"), TARGET_SERVICE("-ts", "--target-service");
+    HS256("hs256", "hs256", 1, new int[] {7}), HS256_VERIFY("hs256-verify", "hs256-verify", 2,
+        new int[] {7, 12}), SSJWT("ssjwt", "ssjwt", 3, new int[] {6, 9, 10, 13, 11}), ID_TOKEN(
+            "idtoken", "idtoken", 4, new int[] {9, 10, 13, 11}), ACCESS_TOKEN("access-token",
+                "access-token", 5,
+                new int[] {9, 10, 13, 11}), TYPE("-t", "--type", 6, new int[] {}), SECRET("-s",
+                    "--secret", 7, new int[] {}), PROJECT_ID("-p", "--project-id", 8,
+                        new int[] {}), BASE64_KEY("-k", "--key", 9, new int[] {}), KEY_FILE("-kf",
+                            "--key-file", 10, new int[] {}), SERVICE_ACCOUNT("-sa",
+                                "--service-account", 11, new int[] {}), SIGNED_JWT("-j",
+                                    "--signed-jwt", 12, new int[] {}), TARGET_SERVICE("-ts",
+                                        "--target-service", 13, new int[] {});
 
     String shortParam;
     String verboseParam;
-    String methodName;
+    int id;
+    int[] params;
 
-    Parameters(String shortParam, String verboseParam) {
+    Parameters(String shortParam, String verboseParam, int id, int[] params) {
       this.shortParam = shortParam;
       this.verboseParam = verboseParam;
+      this.id = id;
+      this.params = params;
     }
 
     public boolean isEqual(String value) {
       return this.shortParam.equals(value) || this.verboseParam.equals(value);
+    }
+
+    public static Optional<Parameters> get(int id) {
+      return Stream.of(Parameters.values()).filter(p -> p.id == id).findAny();
     }
   }
 
@@ -131,7 +139,7 @@ public class JwtTokenUtilsConsole {
     if (optional.isPresent()) {
       // optional.get().getReturnType()
       Object result = optional.get().invoke(builder.build());
-      if(result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation)) {
+      if (result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation)) {
         printVerbose((String) result, args);
       }
       log.info((String) result);
@@ -139,10 +147,10 @@ public class JwtTokenUtilsConsole {
       throw new RuntimeException("Miss method");
     }
   }
-  
+
   private void printVerbose(String jwt, String... params) {
-    if(checkForParam("-v", params) || checkForParam("--verbose", params)) {
-      
+    if (checkForParam("-v", params) || checkForParam("--verbose", params)) {
+
       String[] jwtSplitted = jwt.split("\\.");
       String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
       String jwtClaims = new String(Base64.getDecoder().decode(jwtSplitted[1]));
@@ -152,7 +160,7 @@ public class JwtTokenUtilsConsole {
       log.info(prettyPrint(jwtClaims));
     }
   }
-  
+
   String prettyPrint(String json) {
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
     JsonElement jsonElement = JsonParser.parseString(json);
@@ -180,13 +188,40 @@ public class JwtTokenUtilsConsole {
   private static void printHelp() {
     StringBuilder sb = new StringBuilder();
     sb.append("\n\n" + BOLD + "JWT UTILS " + RESET + "\n\n");
-    sb.append("\033[1;37mUSAGE\033[0m\n");
-    sb.append(" hs256\t\t-s|--secret\t\t\tgenerate hs256 jwt\n");
-    sb.append(" hs256verify\t-j|--signed-jwt\t\tverify hs256 jwt\n");
-    sb.append(
-        " ssjwt\t\t-t|--type [idtoken|access-token]  -k|--key|-kf|--key-file  -ts|--target-service  -sa|--service-account\n");
-    sb.append(" idtoken\t-k|--key  -sa|--service-account\n");
-    sb.append(" access-token\t-k|--key  -sa|--service-account\n");
+    sb.append("\033[1;37mUSAGE:\033[0m\n");
+    sb.append(String.format("\t%-15s", JwtProps.CMD_HELP_USAGE.val()));
+
+    sb.append("\n\033[1;37mFUNCTIONS:\033[0m\n");
+    Stream.of(Parameters.values()).filter(p -> !p.shortParam.startsWith("-")).forEach(p -> {
+      sb.append(String.format("\t%-15s", p.shortParam));
+      Arrays.stream(p.params).forEach(pnum -> {
+        Optional<Parameters> param = Parameters.get(pnum);
+        sb.append(String.format("%-3s", param.get().shortParam)).append("  ");
+      });
+      sb.append("\n");
+    });
+
+    sb.append("\n\033[1;37mPARAMETERS:\033[0m\n");
+    Stream.of(Parameters.values()).filter(p -> p.shortParam.startsWith("-")).forEach(p -> {
+      String description = "";
+      JwtProps jwtp = null;
+      try {
+        jwtp = JwtProps.valueOf("CMD_FLAGS_" + (p.toString()));
+        log.info(jwtp.val());
+      } catch (Exception e) {
+      }
+
+      sb.append(String.format("\t%-3s, %-15s", p.shortParam, p.verboseParam)).append("\t")
+          .append(jwtp != null ? jwtp.val() : "").append("\n");
+    });
+
+    /*
+     * sb.append(" hs256\t\t-s|--secret\t\t\tgenerate hs256 jwt\n");
+     * sb.append(" hs256verify\t-j|--signed-jwt\t\tverify hs256 jwt\n"); sb.append(
+     * " ssjwt\t\t-t|--type [idtoken|access-token]  -k|--key|-kf|--key-file  -ts|--target-service  -sa|--service-account\n"
+     * ); sb.append(" idtoken\t-k|--key  -sa|--service-account\n");
+     * sb.append(" access-token\t-k|--key  -sa|--service-account\n");
+     */
     log.info(sb.toString());
   }
 
