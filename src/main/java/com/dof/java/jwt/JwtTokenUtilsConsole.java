@@ -183,26 +183,55 @@ public class JwtTokenUtilsConsole {
     return Stream.of(params).anyMatch(p -> p.equalsIgnoreCase(toFind));
   }
 
-  private static final String BOLD = "\033[1;37m";
-  private static final String RESET = "\033[0m";
 
   private static void printHelp() {
     StringBuilder sb = new StringBuilder();
-    sb.append("\n\n" + BOLD + "JWT UTILS " + RESET + "\n\n");
-    sb.append("\033[1;37mUSAGE:\033[0m\n");
-    sb.append(String.format("\t%-15s", JwtProps.CMD_HELP_USAGE.val()));
+    sb.append("\nJWT UTILS\n");
 
-    sb.append("\n\033[1;37mFUNCTIONS:\033[0m\n");
+    sb.append(
+        String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), "Usage", JwtProps.CMD_COLOR0.val()));
+
+    sb.append(String.format("%4c%-15s", 32, JwtProps.CMD_HELP_USAGE.val()));
+
+    // command header
+
+    sb.append(String.format("%s%s%s%n", JwtProps.CMD_COLOR1.val(), "Commands",
+        JwtProps.CMD_COLOR0.val()));
+
+    // sb.append(String.format("%4c%-15s%-20s%n", 32, "Name", "Flags"));
+
     Stream.of(Parameters.values()).filter(p -> !p.shortParam.startsWith("-")).forEach(p -> {
-      sb.append(String.format("\t%-15s", p.shortParam));
+
+      // command name
+
+      sb.append(String.format("%n%4c%s%-11s%s%n", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
+          JwtProps.CMD_COLOR0.val()));
+
+      // command description
+
+      JwtProps jwtc = null;
+      try {
+        jwtc = JwtProps.valueOf("CMD_" + (p.toString()));
+      } catch (Exception e) {
+      }
+      sb.append(JwtProps.CMD_COLOR3.val());
+      format(sb, jwtc != null ? jwtc.val() : "", 8, 0);
+
+
+      // command flags
+
+      StringBuilder psb = new StringBuilder("Required Flags: ");
       Arrays.stream(p.params).forEach(pnum -> {
         Optional<Parameters> param = Parameters.get(pnum);
-        sb.append(String.format("%-3s", param.get().shortParam)).append("  ");
+        psb.append(String.format("%s ", param.get().shortParam));
       });
-      sb.append("\n");
+
+      sb.append(String.format("%8c%-20s%n", 32, psb.toString()));
+      sb.append(JwtProps.CMD_COLOR0.val());
     });
 
-    sb.append("\n\033[1;37mPARAMETERS:\033[0m\n");
+    sb.append(
+        String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), "Flags", JwtProps.CMD_COLOR0.val()));
     Stream.of(Parameters.values()).filter(p -> p.shortParam.startsWith("-")).forEach(p -> {
 
       JwtProps jwtp = null;
@@ -211,11 +240,31 @@ public class JwtTokenUtilsConsole {
       } catch (Exception e) {
       }
 
-      sb.append(String.format("\t%-3s, %-15s", p.shortParam, p.verboseParam)).append("\t")
-          .append(jwtp != null ? jwtp.val() : "").append("\n");
+      sb.append(String.format("%4c%s%-3s, %-19s%s", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
+          p.verboseParam, JwtProps.CMD_COLOR0.val()));
+      sb.append(JwtProps.CMD_COLOR3.val()).append("\n");
+      format(sb, jwtp != null ? jwtp.val() : "", 19, 1);
+
+      // sb.append(
+      // jwtp != null
+      // ? String.format("%s%s%s", JwtProps.CMD_COLOR3.val(), jwtp.val(),
+      // JwtProps.CMD_COLOR0.val())
+      // :
+      // "")
+      // .append("\n");
     });
 
     log.info(sb.toString());
+  }
+
+  static void format(StringBuilder sb, String s, int formatSpace, int startFrom) {
+    String[] splitted = s.split("\n");
+    if (splitted.length > 0) {
+      for (int i = 0; i < splitted.length; i++) {
+        sb.append(
+            String.format("%s%s%n", i >= startFrom ? " ".repeat(formatSpace) : "", splitted[i]));
+      }
+    }
   }
 
   /**

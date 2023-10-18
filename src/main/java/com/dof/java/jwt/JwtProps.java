@@ -15,7 +15,12 @@ public enum JwtProps {
               "cmd.flags.key"), CMD_FLAGS_KEY_FILE("cmd.flags.key.file"), CMD_FLAGS_SERVICE_ACCOUNT(
                   "cmd.flags.service.account"), CMD_FLAGS_SIGNED_JWT(
                       "cmd.flags.signed.jwt"), CMD_FLAGS_TARGET_SERVICE(
-                          "cmd.flags.target.service"), CMD_FLAGS_VERBOSE("cmd.flags.verbose");
+                          "cmd.flags.target.service"), CMD_FLAGS_VERBOSE(
+                              "cmd.flags.verbose"), CMD_COLOR0("cmd.color0"), CMD_COLOR1(
+                                  "cmd.color1"), CMD_COLOR2("cmd.color2"), CMD_COLOR3(
+                                      "cmd.color3"), CMD_HS256("cmd.hs256"), CMD_HS256_VERIFY(
+                                          "cmd.hs256verify"), CMD_SSJWT("cmd.ssjwt"), CMD_ID_TOKEN(
+                                              "cmd.idtoken"), CMD_ACCESS_TOKEN("cmd.access.token");
 
   String key;
 
