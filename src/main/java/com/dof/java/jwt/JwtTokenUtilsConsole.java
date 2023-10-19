@@ -12,6 +12,7 @@ import java.util.logging.LogManager;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.dof.java.jwt.JwtTokenUtilsConsole.Parameters;
 import com.fasterxml.jackson.databind.util.ArrayIterator;
 import com.nimbusds.jose.shaded.gson.Gson;
 import com.nimbusds.jose.shaded.gson.GsonBuilder;
@@ -28,7 +29,9 @@ import com.nimbusds.jose.shaded.gson.JsonParser;
 public class JwtTokenUtilsConsole {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsole.class);
 
-  static final int SCREEN_WIDTH = 100;
+  private static String[] cmd_args;
+
+  static final int SCREEN_WIDTH = 60;
 
   /**
    * Program available parameters.
@@ -37,19 +40,23 @@ public class JwtTokenUtilsConsole {
    *
    */
   public enum Parameters {
-    HS256("hs256", "hs256", 1, new int[] {7}), HS256_VERIFY("hs256-verify", "hs256-verify", 2,
-        new int[] {7, 12}), SSJWT("ssjwt", "ssjwt", 3, new int[] {6, 9, 10, 13, 11}), ID_TOKEN(
-            "idtoken", "idtoken", 4, new int[] {9, 10, 13, 11}), ACCESS_TOKEN("access-token",
-                "access-token", 5, new int[] {9, 10, 13, 11}), TYPE("-t", "--type", 6,
-                    new int[] {}), SECRET("-s", "--secret", 7, new int[] {}), PROJECT_ID("-p",
-                        "--project-id", 8,
-                        new int[] {}), BASE64_KEY("-k", "--key", 9, new int[] {}), KEY_FILE("-kf",
-                            "--key-file", 10, new int[] {}), SERVICE_ACCOUNT("-sa",
-                                "--service-account", 11,
-                                new int[] {}), SIGNED_JWT("-j", "--signed-jwt", 12,
-                                    new int[] {}), TARGET_SERVICE("-ts", "--target-service", 13,
-                                        new int[] {}), VERBOSE("-v", "--verbose", 14,
-                                            new int[] {}), HELP("-h", "--help", 15, new int[] {});
+    HS256("hs256", "hs256", 1, new int[] {7}),
+    HS256_VERIFY("hs256-verify", "hs256-verify", 2, new int[] {7, 12}),
+    SSJWT("ssjwt", "ssjwt", 3, new int[] {6, 9, 10, 13, 11}),
+    ID_TOKEN("idtoken", "idtoken", 4, new int[] {9, 10, 13, 11}),
+    ACCESS_TOKEN("access-token", "access-token", 5, new int[] {9, 10, 13, 11}),
+    TYPE("-t", "--type", 6, new int[] {}),
+    SECRET("-s", "--secret", 7, new int[] {}),
+    PROJECT_ID("-p", "--project-id", 8, new int[] {}),
+    BASE64_KEY("-k", "--key", 9, new int[] {}),
+    KEY_FILE("-kf", "--key-file", 10, new int[] {}),
+    SERVICE_ACCOUNT("-sa", "--service-account", 11, new int[] {}),
+    SIGNED_JWT("-j", "--signed-jwt", 12, new int[] {}),
+    TARGET_SERVICE("-ts", "--target-service", 13, new int[] {}),
+    VERBOSE("-v", "--verbose", 14, new int[] {}),
+    HELP("-h", "--help", 15, new int[] {}),
+    PUBLIC_KEY("-pk", "--public-key", 16, new int[] {}),
+    RS256_VERIFY("rs256-verify", "rs256-verify", 17, new int[] {16, 12});
 
     String shortParam;
     String verboseParam;
@@ -96,7 +103,7 @@ public class JwtTokenUtilsConsole {
       String param = iter.next();
       if (Parameters.HS256.isEqual(param) || Parameters.HS256_VERIFY.isEqual(param)
           || Parameters.SSJWT.isEqual(param) || Parameters.ID_TOKEN.isEqual(param)
-          || Parameters.ACCESS_TOKEN.isEqual(param)) {
+          || Parameters.ACCESS_TOKEN.isEqual(param) || Parameters.RS256_VERIFY.isEqual(param)) {
         operation = param;
         if (Parameters.ID_TOKEN.isEqual(param)) {
           builder.setTargetTokenType(TargetTokenType.ID_TOKEN);
@@ -135,6 +142,10 @@ public class JwtTokenUtilsConsole {
       } else if (Parameters.TARGET_SERVICE.isEqual(param)) {
         Assert.hasNext(iter);
         builder.setTargetServiceUrl(iter.next());
+
+      } else if (Parameters.PUBLIC_KEY.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setPublicKeyFile(iter.next());
       }
     }
 
@@ -143,33 +154,17 @@ public class JwtTokenUtilsConsole {
     if (optional.isPresent()) {
       // optional.get().getReturnType()
       Object result = optional.get().invoke(builder.build());
-      if (result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation)) {
-        printVerbose((String) result, args);
+      if (result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation)
+          || checkForParam(Parameters.VERBOSE)) {
+        PrintUtility.prettyPrintJwt((String) result);
       }
-      log.info((String) result);
+      log.info("{}", result);
     } else {
       throw new RuntimeException("Miss method");
     }
   }
 
-  private void printVerbose(String jwt, String... params) {
-    if (checkForParam(Parameters.VERBOSE)) {
 
-      String[] jwtSplitted = jwt.split("\\.");
-      String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
-      String jwtClaims = new String(Base64.getDecoder().decode(jwtSplitted[1]));
-      log.info("HEADERS:");
-      log.info(prettyPrint(jwtHeaders));
-      log.info("CLAIMS:");
-      log.info(prettyPrint(jwtClaims));
-    }
-  }
-
-  String prettyPrint(String json) {
-    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    JsonElement jsonElement = JsonParser.parseString(json);
-    return gson.toJson(jsonElement);
-  }
 
   private static void loggingConf() {
     try (InputStream in =
@@ -182,8 +177,8 @@ public class JwtTokenUtilsConsole {
   }
 
 
-  private static boolean checkForParam(Parameters toFind, String... params) {
-    return Stream.of(params).anyMatch(
+  private static boolean checkForParam(Parameters toFind) {
+    return Stream.of(cmd_args).anyMatch(
         p -> (p.equalsIgnoreCase(toFind.shortParam) || p.equalsIgnoreCase(toFind.verboseParam)));
   }
 
@@ -247,6 +242,7 @@ public class JwtTokenUtilsConsole {
           p.verboseParam, JwtProps.CMD_COLOR0.val()));
       sb.append(JwtProps.CMD_COLOR3.val());
       format(sb, jwtp != null ? jwtp.val() : "", 8, SCREEN_WIDTH);
+      sb.append(JwtProps.CMD_COLOR0.val());
     });
 
     log.info(sb.toString());
@@ -281,7 +277,9 @@ public class JwtTokenUtilsConsole {
         return;
       }
 
-      if (checkForParam(Parameters.HELP, args)) {
+      cmd_args = args;
+
+      if (checkForParam(Parameters.HELP)) {
         printHelp();
         return;
       }
@@ -294,7 +292,14 @@ public class JwtTokenUtilsConsole {
       new JwtTokenUtilsConsole().evalMethod(args);
 
     } catch (Exception e) {
-      log.error(e.getMessage(), e);
+      String errorMessage;
+      if (e instanceof InvocationTargetException) {
+        errorMessage = ((InvocationTargetException) e).getTargetException().getMessage();
+      } else {
+        errorMessage = e.getMessage();
+      }
+      log.error("{}{}{}", JwtProps.CMD_COLOR4.val(), "ERROR", JwtProps.CMD_COLOR0.val());
+      log.error(errorMessage, e);
     }
   }
 

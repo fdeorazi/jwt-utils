@@ -13,8 +13,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
@@ -26,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -52,9 +56,9 @@ public class JwtTokenUtils {
   private String targetServiceUrl;
   private String keyFile;
   private TargetTokenType targetTokenType;
+  private String publicKeyFile;
 
   Properties props;
-
 
 
   public static JwtTokenUtilsBuilder builder() {
@@ -70,15 +74,21 @@ public class JwtTokenUtils {
     this.keyFile = builder.keyFile;
     this.scope = builder.scope;
     this.targetTokenType = builder.targetTokenType;
+    this.publicKeyFile = builder.publicKeyFile;
   }
 
-
-  String readPrivateKey(String filePath) throws IOException {
-    if (!filePath.contains(File.separator)) {
-      URL url = this.getClass().getClassLoader().getResource(filePath);
-      filePath = url.getPath();
-    }
+  private String readKey(String filePath) throws IOException {
     File key = new File(filePath);
+
+    // test purpose: search key inside sources
+    if (!key.exists()) {
+      URL url = this.getClass().getClassLoader().getResource(filePath);
+      if (url != null) {
+        filePath = url.getPath();
+        key = new File(filePath);
+      }
+    }
+
     if (!key.exists()) {
       throw new IOException("Key not found");
     }
@@ -92,9 +102,24 @@ public class JwtTokenUtils {
       }
       content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
     }
+    return content;
+  }
+
+  String readPrivateKey(String filePath) throws IOException {
+    String content = readKey(filePath);
 
     content = content.replace("-----BEGIN PRIVATE KEY-----", "")
         .replace("-----END PRIVATE KEY-----", "").replaceAll("\r\n|\n|\r", "");
+    log.debug("Read key:\n'{}'", content);
+    return content;
+  }
+
+  String readPublicKey(String filePath) throws IOException {
+    String content = readKey(filePath);
+
+    content = content.replace("-----BEGIN PUBLIC KEY-----", "")
+        .replace("-----END PUBLIC KEY-----", "").replaceAll("\r\n|\n|\r", "");
+    
     log.debug("Read key:\n'{}'", content);
     return content;
   }
@@ -136,10 +161,12 @@ public class JwtTokenUtils {
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
       claims.put("target_audience", targetServiceUrl);
       claims.put("sub", serviceAccount);
+      //claims.put("iss", "https://accounts.google.com");
+      claims.put("iss", serviceAccount);
     }
 
-    claims.put("iss", serviceAccount);
     claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
+    //claims.put("aud", serviceAccount);
     claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
     claims.put("iat", System.currentTimeMillis() / 1000);
 
@@ -202,8 +229,7 @@ public class JwtTokenUtils {
       conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
       conn.setDoOutput(true);
 
-      String payload =
-          JwtProps.GCP_TOKEN_REQ_PAYLOAD.val() + signedJwt;
+      String payload = JwtProps.GCP_TOKEN_REQ_PAYLOAD.val() + signedJwt;
       conn.setRequestProperty("Content-Length", String.valueOf(payload.length()));
       byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
       try (OutputStream os = conn.getOutputStream()) {
@@ -247,10 +273,10 @@ public class JwtTokenUtils {
    * @throws JOSEException
    * @throws ParseException
    */
-  @Cmd(param = "hs256verify")
+  @Cmd(param = "hs256-verify")
   public boolean verifyHs256Jwt() throws JOSEException, ParseException {
-    Assert.present(signedJwt, "");
-    Assert.present(sharedSecret, "");
+    Assert.present(signedJwt, "Miss required argument 'signed jwt'");
+    Assert.present(sharedSecret, "Miss required argument 'shared secret'");
 
     log.trace("signedJwt: '{}', sharedSecret: '{}'", signedJwt, sharedSecret);
     if (signedJwt == null || !signedJwt.contains(".")) {
@@ -259,6 +285,33 @@ public class JwtTokenUtils {
     SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
     log.trace("signature: {}", signedJwtObj.getSignature());
     JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
+
+    return signedJwtObj.verify(verifier);
+  }
+
+
+
+  @Cmd(param = "rs256-verify")
+  public Boolean verifyRs256Jwt() throws JOSEException, ParseException, IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    Assert.present(signedJwt, "Miss required argument 'signed jwt'");
+    Assert.present(publicKeyFile, "Miss required argument 'public key file'");
+
+    // log.trace("signedJwt: '{}', public key: '{}'", signedJwt, );
+    if (signedJwt == null || !signedJwt.contains(".")) {
+      throw new IllegalArgumentException("Invalid Jwt");
+    }
+    SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
+
+    String base64PublicKey = readPublicKey(publicKeyFile);
+
+    log.info("{}", base64PublicKey);
+
+    byte[] keyDerFormat = Base64.getDecoder().decode(base64PublicKey);
+    X509EncodedKeySpec spec = new X509EncodedKeySpec(keyDerFormat);
+    KeyFactory keyFactory = KeyFactory.getInstance(RSA);
+    PublicKey publicKey = keyFactory.generatePublic(spec);
+    
+    JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
     return signedJwtObj.verify(verifier);
   }
 
@@ -295,6 +348,7 @@ public class JwtTokenUtils {
   public String generateToken()
       throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     String ssjwt = generateSelfSignedJwt();
+    PrintUtility.prettyPrintJwt(ssjwt);
     return gcpToken(ssjwt);
   }
 

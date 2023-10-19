@@ -73,6 +73,24 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>4.0.0</version>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>jackson-module-kotlin</artifactId>
+					<groupId>com.fasterxml.jackson.module</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>*</artifactId>
+					<groupId>org.hamcrest</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+
 	</dependencies>
 
 	<profiles>
@@ -89,7 +107,8 @@
 								<manifest>
 									<addClasspath>true</addClasspath>
 									<classpathPrefix>lib/</classpathPrefix>
-									<mainClass>com.dof.java.jwt.JwtTokenUtilsConsole</mainClass>
+									<mainClass>
+										com.dof.java.jwt.JwtTokenUtilsConsole</mainClass>
 								</manifest>
 							</archive>
 						</configuration>
@@ -103,7 +122,8 @@
 									<goal>copy-dependencies</goal>
 								</goals>
 								<configuration>
-									<outputDirectory>${project.build.directory}\lib</outputDirectory>
+									<outputDirectory>
+										${project.build.directory}\lib</outputDirectory>
 								</configuration>
 							</execution>
 						</executions>

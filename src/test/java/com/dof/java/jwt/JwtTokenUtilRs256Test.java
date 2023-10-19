@@ -19,6 +19,8 @@ class JwtTokenUtilRs256Test {
   private static final String SERVICE_ACCOUNT = "service-account-test@test.com";
   private static final String TARGET_SERVICE = "http://cloud.service.com/service";
 
+  private static final String KEY_FILE = "pk4096.pem";
+  
   @Test
   void givenNoParamers_whenGenRs256ForIdToken_thenThrowException() {
     JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().build();
@@ -28,14 +30,14 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenNoServiceAccount_whenGenRs256ForIdToken_thenThrowException() {
     JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().setTargetServiceUrl(TARGET_SERVICE)
-        .setKeyFile("test.pem").setTargetTokenType(TargetTokenType.ID_TOKEN).build();
+        .setKeyFile(KEY_FILE).setTargetTokenType(TargetTokenType.ID_TOKEN).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
   }
 
   @Test
   void givenNoTargetService_whenGenRs256ForIdToken_thenThrowException() {
     JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().setServiceAccount(SERVICE_ACCOUNT)
-        .setKeyFile("test.pem").setTargetTokenType(TargetTokenType.ID_TOKEN).build();
+        .setKeyFile(KEY_FILE).setTargetTokenType(TargetTokenType.ID_TOKEN).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
   }
 
@@ -49,7 +51,7 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenAllParams_whenGenRs256ForIdToken_thenReturnCorrectJwt() {
     JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().setServiceAccount(SERVICE_ACCOUNT)
-        .setTargetServiceUrl(TARGET_SERVICE).setKeyFile("test.pem")
+        .setTargetServiceUrl(TARGET_SERVICE).setKeyFile(KEY_FILE)
         .setTargetTokenType(TargetTokenType.ID_TOKEN).build();
     String jwt = assertDoesNotThrow(() -> jwtTokenUtils.generateSelfSignedJwt());
     assertThat(jwt).isNotBlank();
@@ -65,7 +67,7 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenAllParams_whenGenRs256ForAccessToken_thenReturnCorrectJwt() {
     JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().setServiceAccount(SERVICE_ACCOUNT)
-        .setTargetServiceUrl(TARGET_SERVICE).setKeyFile("test.pem")
+        .setTargetServiceUrl(TARGET_SERVICE).setKeyFile(KEY_FILE)
         .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build();
     String jwt = assertDoesNotThrow(() -> jwtTokenUtils.generateSelfSignedJwt());
     assertThat(jwt).isNotBlank();

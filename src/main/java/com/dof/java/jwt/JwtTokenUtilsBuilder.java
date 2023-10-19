@@ -8,7 +8,7 @@ package com.dof.java.jwt;
  *
  */
 public class JwtTokenUtilsBuilder {
-
+  
   String projectId;
   String serviceAccount;
   String base64privateKey;
@@ -18,6 +18,7 @@ public class JwtTokenUtilsBuilder {
   String keyFile;
   String targetServiceUrl;
   TargetTokenType targetTokenType;
+  String publicKeyFile;
   
 
   public JwtTokenUtilsBuilder setProjectId(String projectId) {
@@ -61,7 +62,14 @@ public class JwtTokenUtilsBuilder {
     this.targetTokenType = targetTokenType;
     return this;
   }
+  
+  
+  public JwtTokenUtilsBuilder setPublicKeyFile(String publicKeyFile) {
+    this.publicKeyFile = publicKeyFile;
+    return this;
+  }
 
+  
   public JwtTokenUtils build() {
     return new JwtTokenUtils(this);
   }
