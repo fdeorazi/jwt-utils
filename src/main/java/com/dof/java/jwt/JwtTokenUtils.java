@@ -94,12 +94,10 @@ public class JwtTokenUtils {
     }
 
     content = content.replace("-----BEGIN PRIVATE KEY-----", "")
-        .replace("-----END PRIVATE KEY-----", "")
-        .replaceAll("\r\n|\n|\r", "");
-    log.debug("Read key:\n'{}'",content);
+        .replace("-----END PRIVATE KEY-----", "").replaceAll("\r\n|\n|\r", "");
+    log.debug("Read key:\n'{}'", content);
     return content;
   }
-
 
 
 
@@ -205,7 +203,7 @@ public class JwtTokenUtils {
       conn.setDoOutput(true);
 
       String payload =
-          "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=" + signedJwt;
+          JwtProps.GCP_TOKEN_REQ_PAYLOAD.val() + signedJwt;
       conn.setRequestProperty("Content-Length", String.valueOf(payload.length()));
       byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
       try (OutputStream os = conn.getOutputStream()) {
@@ -283,17 +281,19 @@ public class JwtTokenUtils {
 
     Map<String, Object> claims = new HashMap<>();
     claims.put("aud", this.projectId);
-    claims.put("iat", 1661983200);
-    claims.put("exp", 1664488800);
+    Long now = System.currentTimeMillis() / 1000;
+    claims.put("iat", now);
+    claims.put("exp", now + 86400);
 
 
     return Jwts.builder().setHeader(headers).setClaims(claims)
         .signWith(SignatureAlgorithm.HS256, sharedSecret.getBytes(StandardCharsets.UTF_8))
         .compact();
   }
-  
+
   @Cmd(param = {"idtoken", "access-token"})
-  public String generateToken() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+  public String generateToken()
+      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     String ssjwt = generateSelfSignedJwt();
     return gcpToken(ssjwt);
   }

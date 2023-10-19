@@ -28,6 +28,8 @@ import com.nimbusds.jose.shaded.gson.JsonParser;
 public class JwtTokenUtilsConsole {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsole.class);
 
+  static final int SCREEN_WIDTH = 100;
+
   /**
    * Program available parameters.
    *
@@ -37,16 +39,17 @@ public class JwtTokenUtilsConsole {
   public enum Parameters {
     HS256("hs256", "hs256", 1, new int[] {7}), HS256_VERIFY("hs256-verify", "hs256-verify", 2,
         new int[] {7, 12}), SSJWT("ssjwt", "ssjwt", 3, new int[] {6, 9, 10, 13, 11}), ID_TOKEN(
-            "idtoken", "idtoken", 4,
-            new int[] {9, 10, 13, 11}), ACCESS_TOKEN("access-token", "access-token", 5,
-                new int[] {9, 10, 13, 11}), TYPE("-t", "--type", 6, new int[] {}), SECRET("-s",
-                    "--secret", 7, new int[] {}), PROJECT_ID("-p", "--project-id", 8,
+            "idtoken", "idtoken", 4, new int[] {9, 10, 13, 11}), ACCESS_TOKEN("access-token",
+                "access-token", 5, new int[] {9, 10, 13, 11}), TYPE("-t", "--type", 6,
+                    new int[] {}), SECRET("-s", "--secret", 7, new int[] {}), PROJECT_ID("-p",
+                        "--project-id", 8,
                         new int[] {}), BASE64_KEY("-k", "--key", 9, new int[] {}), KEY_FILE("-kf",
-                            "--key-file", 10,
-                            new int[] {}), SERVICE_ACCOUNT("-sa", "--service-account", 11,
+                            "--key-file", 10, new int[] {}), SERVICE_ACCOUNT("-sa",
+                                "--service-account", 11,
                                 new int[] {}), SIGNED_JWT("-j", "--signed-jwt", 12,
                                     new int[] {}), TARGET_SERVICE("-ts", "--target-service", 13,
-                                        new int[] {}), VERBOSE("-v", "--verbose", 14, new int[] {});
+                                        new int[] {}), VERBOSE("-v", "--verbose", 14,
+                                            new int[] {}), HELP("-h", "--help", 15, new int[] {});
 
     String shortParam;
     String verboseParam;
@@ -150,7 +153,7 @@ public class JwtTokenUtilsConsole {
   }
 
   private void printVerbose(String jwt, String... params) {
-    if (checkForParam("-v", params) || checkForParam("--verbose", params)) {
+    if (checkForParam(Parameters.VERBOSE)) {
 
       String[] jwtSplitted = jwt.split("\\.");
       String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
@@ -179,32 +182,33 @@ public class JwtTokenUtilsConsole {
   }
 
 
-  private static boolean checkForParam(String toFind, String... params) {
-    return Stream.of(params).anyMatch(p -> p.equalsIgnoreCase(toFind));
+  private static boolean checkForParam(Parameters toFind, String... params) {
+    return Stream.of(params).anyMatch(
+        p -> (p.equalsIgnoreCase(toFind.shortParam) || p.equalsIgnoreCase(toFind.verboseParam)));
   }
 
 
   private static void printHelp() {
     StringBuilder sb = new StringBuilder();
-    sb.append("\nJWT UTILS\n");
+    sb.append(JwtProps.CMD_TITLE.val());
 
-    sb.append(
-        String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), "Usage", JwtProps.CMD_COLOR0.val()));
-
-    sb.append(String.format("%4c%-15s", 32, JwtProps.CMD_HELP_USAGE.val()));
-
-    // command header
-
-    sb.append(String.format("%s%s%s%n", JwtProps.CMD_COLOR1.val(), "Commands",
+    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL1.val(),
         JwtProps.CMD_COLOR0.val()));
 
-    // sb.append(String.format("%4c%-15s%-20s%n", 32, "Name", "Flags"));
+    sb.append(String.format("%n%4c%s%-15s%n", 32, JwtProps.CMD_COLOR3.val(),
+        JwtProps.CMD_HELP_USAGE.val()));
+
+    // command header
+    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL2.val(),
+        JwtProps.CMD_COLOR0.val()));
+
+    // commands
 
     Stream.of(Parameters.values()).filter(p -> !p.shortParam.startsWith("-")).forEach(p -> {
 
       // command name
 
-      sb.append(String.format("%n%4c%s%-11s%s%n", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
+      sb.append(String.format("%n%4c%s%-11s%s", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
           JwtProps.CMD_COLOR0.val()));
 
       // command description
@@ -215,8 +219,7 @@ public class JwtTokenUtilsConsole {
       } catch (Exception e) {
       }
       sb.append(JwtProps.CMD_COLOR3.val());
-      format(sb, jwtc != null ? jwtc.val() : "", 8, 0);
-
+      format(sb, jwtc != null ? jwtc.val() : "", 8, SCREEN_WIDTH);
 
       // command flags
 
@@ -230,8 +233,8 @@ public class JwtTokenUtilsConsole {
       sb.append(JwtProps.CMD_COLOR0.val());
     });
 
-    sb.append(
-        String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), "Flags", JwtProps.CMD_COLOR0.val()));
+    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL3.val(),
+        JwtProps.CMD_COLOR0.val()));
     Stream.of(Parameters.values()).filter(p -> p.shortParam.startsWith("-")).forEach(p -> {
 
       JwtProps jwtp = null;
@@ -240,32 +243,30 @@ public class JwtTokenUtilsConsole {
       } catch (Exception e) {
       }
 
-      sb.append(String.format("%4c%s%-3s, %-19s%s", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
+      sb.append(String.format("%n%4c%s%s, %-19s%s", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
           p.verboseParam, JwtProps.CMD_COLOR0.val()));
-      sb.append(JwtProps.CMD_COLOR3.val()).append("\n");
-      format(sb, jwtp != null ? jwtp.val() : "", 19, 1);
-
-      // sb.append(
-      // jwtp != null
-      // ? String.format("%s%s%s", JwtProps.CMD_COLOR3.val(), jwtp.val(),
-      // JwtProps.CMD_COLOR0.val())
-      // :
-      // "")
-      // .append("\n");
+      sb.append(JwtProps.CMD_COLOR3.val());
+      format(sb, jwtp != null ? jwtp.val() : "", 8, SCREEN_WIDTH);
     });
 
     log.info(sb.toString());
   }
 
-  static void format(StringBuilder sb, String s, int formatSpace, int startFrom) {
-    String[] splitted = s.split("\n");
-    if (splitted.length > 0) {
-      for (int i = 0; i < splitted.length; i++) {
-        sb.append(
-            String.format("%s%s%n", i >= startFrom ? " ".repeat(formatSpace) : "", splitted[i]));
-      }
+  static void format(StringBuilder sb, String s, int format, int screenWidth) {
+    int textPos = 0;
+    sb.append("\n");
+
+    while (textPos < s.length()) {
+      int textLeft = s.length() - textPos;
+      int screenLeft = screenWidth - format;
+      int lineLength = textLeft < screenLeft ? textLeft : screenLeft;
+      String line = s.substring(textPos, textPos + lineLength);
+      String formattedLine = String.format("%s%s%n", " ".repeat(format), line);
+      sb.append(formattedLine);
+      textPos += lineLength;
     }
   }
+
 
   /**
    * Application entry point.
@@ -280,11 +281,10 @@ public class JwtTokenUtilsConsole {
         return;
       }
 
-      if (args[args.length - 1].equalsIgnoreCase("-help")) {
+      if (checkForParam(Parameters.HELP, args)) {
         printHelp();
         return;
       }
-
 
       log.debug("Passed arguments: {}", args.length);
       Arrays.stream(args).forEach(arg -> {
