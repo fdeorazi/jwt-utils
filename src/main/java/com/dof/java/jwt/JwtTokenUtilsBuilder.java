@@ -19,6 +19,7 @@ public class JwtTokenUtilsBuilder {
   String targetServiceUrl;
   TargetTokenType targetTokenType;
   String publicKeyFile;
+  boolean verbose;
   
 
   public JwtTokenUtilsBuilder setProjectId(String projectId) {
@@ -69,6 +70,10 @@ public class JwtTokenUtilsBuilder {
     return this;
   }
 
+  public JwtTokenUtilsBuilder setVerbose(boolean verbose) {
+    this.verbose = verbose;
+    return this;
+  }
   
   public JwtTokenUtils build() {
     return new JwtTokenUtils(this);

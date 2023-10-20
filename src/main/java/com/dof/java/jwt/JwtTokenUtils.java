@@ -57,6 +57,7 @@ public class JwtTokenUtils {
   private String keyFile;
   private TargetTokenType targetTokenType;
   private String publicKeyFile;
+  private boolean verbose;
 
   Properties props;
 
@@ -75,6 +76,7 @@ public class JwtTokenUtils {
     this.scope = builder.scope;
     this.targetTokenType = builder.targetTokenType;
     this.publicKeyFile = builder.publicKeyFile;
+    this.verbose = builder.verbose;
   }
 
   private String readKey(String filePath) throws IOException {
@@ -119,7 +121,7 @@ public class JwtTokenUtils {
 
     content = content.replace("-----BEGIN PUBLIC KEY-----", "")
         .replace("-----END PUBLIC KEY-----", "").replaceAll("\r\n|\n|\r", "");
-    
+
     log.debug("Read key:\n'{}'", content);
     return content;
   }
@@ -156,17 +158,18 @@ public class JwtTokenUtils {
     if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
       claims.put("scope",
           scope == null || scope.isBlank() ? JwtProps.GCP_OAUTH2_SCOPE.val() : scope);
+      claims.put("aud", "https://oauth2.googleapis.com/token");
     }
 
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
       claims.put("target_audience", targetServiceUrl);
       claims.put("sub", serviceAccount);
-      //claims.put("iss", "https://accounts.google.com");
-      claims.put("iss", serviceAccount);
+      // claims.put("iss", "https://accounts.google.com");
+      claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
     }
 
-    claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
-    //claims.put("aud", serviceAccount);
+    // claims.put("aud", serviceAccount);
+    claims.put("iss", serviceAccount);
     claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
     claims.put("iat", System.currentTimeMillis() / 1000);
 
@@ -175,8 +178,12 @@ public class JwtTokenUtils {
     KeyFactory keyFactory = KeyFactory.getInstance(RSA);
     PrivateKey privateKey = keyFactory.generatePrivate(spec);
 
-    return Jwts.builder().setClaims(claims).setHeader(header)
+    String jwt = Jwts.builder().setClaims(claims).setHeader(header)
         .signWith(SignatureAlgorithm.RS256, privateKey).compact();
+    if (verbose) {
+      PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
+    }
+    return jwt;
   }
 
   /**
@@ -232,6 +239,20 @@ public class JwtTokenUtils {
       String payload = JwtProps.GCP_TOKEN_REQ_PAYLOAD.val() + signedJwt;
       conn.setRequestProperty("Content-Length", String.valueOf(payload.length()));
       byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
+
+      if (verbose) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("%n%s%s%n", JwtProps.CMD_COLOR1.val(), "Invoke token endpoint"));
+        sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR5.val(), "Url"));
+        sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR3.val(), url));
+        sb.append(String.format("%s%-10s%s", JwtProps.CMD_COLOR5.val(), "Payload",
+            JwtProps.CMD_COLOR0.val()));
+        sb.append(JwtProps.CMD_COLOR3.val());
+        PrintUtility.format(sb, payload, 0, JwtTokenUtilsConsole.SCREEN_WIDTH);
+        log.info(sb.toString());
+        sb.append(JwtProps.CMD_COLOR0.val());
+      }
+
       try (OutputStream os = conn.getOutputStream()) {
         os.write(bytes, 0, bytes.length);
       }
@@ -258,6 +279,11 @@ public class JwtTokenUtils {
         log.debug("Response {}", response);
       }
       conn.disconnect();
+
+      if (this.verbose && targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
+        PrintUtility.prettyPrintJwt(idToken, "Returned ID Token from GCP ");
+      }
+
       return idToken;
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -290,9 +316,18 @@ public class JwtTokenUtils {
   }
 
 
-
+  /**
+   * 
+   * @return
+   * @throws JOSEException
+   * @throws ParseException
+   * @throws IOException
+   * @throws NoSuchAlgorithmException
+   * @throws InvalidKeySpecException
+   */
   @Cmd(param = "rs256-verify")
-  public Boolean verifyRs256Jwt() throws JOSEException, ParseException, IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+  public Boolean verifyRs256Jwt() throws JOSEException, ParseException, IOException,
+      NoSuchAlgorithmException, InvalidKeySpecException {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
     Assert.present(publicKeyFile, "Miss required argument 'public key file'");
 
@@ -310,7 +345,7 @@ public class JwtTokenUtils {
     X509EncodedKeySpec spec = new X509EncodedKeySpec(keyDerFormat);
     KeyFactory keyFactory = KeyFactory.getInstance(RSA);
     PublicKey publicKey = keyFactory.generatePublic(spec);
-    
+
     JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
     return signedJwtObj.verify(verifier);
   }
@@ -338,17 +373,22 @@ public class JwtTokenUtils {
     claims.put("iat", now);
     claims.put("exp", now + 86400);
 
-
     return Jwts.builder().setHeader(headers).setClaims(claims)
         .signWith(SignatureAlgorithm.HS256, sharedSecret.getBytes(StandardCharsets.UTF_8))
         .compact();
   }
 
+  /**
+   * 
+   * @return
+   * @throws NoSuchAlgorithmException
+   * @throws InvalidKeySpecException
+   * @throws IOException
+   */
   @Cmd(param = {"idtoken", "access-token"})
   public String generateToken()
       throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     String ssjwt = generateSelfSignedJwt();
-    PrintUtility.prettyPrintJwt(ssjwt);
     return gcpToken(ssjwt);
   }
 

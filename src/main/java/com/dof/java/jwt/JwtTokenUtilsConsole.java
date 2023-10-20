@@ -5,19 +5,14 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.logging.LogManager;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.dof.java.jwt.JwtTokenUtilsConsole.Parameters;
 import com.fasterxml.jackson.databind.util.ArrayIterator;
-import com.nimbusds.jose.shaded.gson.Gson;
-import com.nimbusds.jose.shaded.gson.GsonBuilder;
-import com.nimbusds.jose.shaded.gson.JsonElement;
-import com.nimbusds.jose.shaded.gson.JsonParser;
+import com.nimbusds.jwt.JWTParser;
 
 /**
  * Entry point class to use library from command line.
@@ -31,7 +26,7 @@ public class JwtTokenUtilsConsole {
 
   private static String[] cmd_args;
 
-  static final int SCREEN_WIDTH = 60;
+  public static final int SCREEN_WIDTH = 100;
 
   /**
    * Program available parameters.
@@ -146,6 +141,9 @@ public class JwtTokenUtilsConsole {
       } else if (Parameters.PUBLIC_KEY.isEqual(param)) {
         Assert.hasNext(iter);
         builder.setPublicKeyFile(iter.next());
+
+      } else if (Parameters.VERBOSE.isEqual(param)) {
+        builder.setVerbose(true);
       }
     }
 
@@ -154,11 +152,18 @@ public class JwtTokenUtilsConsole {
     if (optional.isPresent()) {
       // optional.get().getReturnType()
       Object result = optional.get().invoke(builder.build());
-      if (result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation)
-          || checkForParam(Parameters.VERBOSE)) {
-        PrintUtility.prettyPrintJwt((String) result);
+      /*
+       * if (result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation) &&
+       * !Parameters.ACCESS_TOKEN.isEqual(operation) && checkForParam(Parameters.VERBOSE)) {
+       * PrintUtility.prettyPrintJwt((String) result, "Final Jwt "); }
+       */
+      // log.info("{}", result);
+
+      if (checkForParam(Parameters.VERBOSE)) {
+        log.info(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Token",
+            JwtProps.CMD_COLOR0.val()));
       }
-      log.info("{}", result);
+      System.out.println(result);
     } else {
       throw new RuntimeException("Miss method");
     }
@@ -183,87 +188,6 @@ public class JwtTokenUtilsConsole {
   }
 
 
-  private static void printHelp() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(JwtProps.CMD_TITLE.val());
-
-    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL1.val(),
-        JwtProps.CMD_COLOR0.val()));
-
-    sb.append(String.format("%n%4c%s%-15s%n", 32, JwtProps.CMD_COLOR3.val(),
-        JwtProps.CMD_HELP_USAGE.val()));
-
-    // command header
-    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL2.val(),
-        JwtProps.CMD_COLOR0.val()));
-
-    // commands
-
-    Stream.of(Parameters.values()).filter(p -> !p.shortParam.startsWith("-")).forEach(p -> {
-
-      // command name
-
-      sb.append(String.format("%n%4c%s%-11s%s", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
-          JwtProps.CMD_COLOR0.val()));
-
-      // command description
-
-      JwtProps jwtc = null;
-      try {
-        jwtc = JwtProps.valueOf("CMD_" + (p.toString()));
-      } catch (Exception e) {
-      }
-      sb.append(JwtProps.CMD_COLOR3.val());
-      format(sb, jwtc != null ? jwtc.val() : "", 8, SCREEN_WIDTH);
-
-      // command flags
-
-      StringBuilder psb = new StringBuilder("Required Flags: ");
-      Arrays.stream(p.params).forEach(pnum -> {
-        Optional<Parameters> param = Parameters.get(pnum);
-        psb.append(String.format("%s ", param.get().shortParam));
-      });
-
-      sb.append(String.format("%8c%-20s%n", 32, psb.toString()));
-      sb.append(JwtProps.CMD_COLOR0.val());
-    });
-
-    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL3.val(),
-        JwtProps.CMD_COLOR0.val()));
-    Stream.of(Parameters.values()).filter(p -> p.shortParam.startsWith("-")).forEach(p -> {
-
-      JwtProps jwtp = null;
-      try {
-        jwtp = JwtProps.valueOf("CMD_FLAGS_" + (p.toString()));
-      } catch (Exception e) {
-      }
-
-      sb.append(String.format("%n%4c%s%s, %-19s%s", 32, JwtProps.CMD_COLOR2.val(), p.shortParam,
-          p.verboseParam, JwtProps.CMD_COLOR0.val()));
-      sb.append(JwtProps.CMD_COLOR3.val());
-      format(sb, jwtp != null ? jwtp.val() : "", 8, SCREEN_WIDTH);
-      sb.append(JwtProps.CMD_COLOR0.val());
-    });
-
-    log.info(sb.toString());
-  }
-
-  static void format(StringBuilder sb, String s, int format, int screenWidth) {
-    int textPos = 0;
-    sb.append("\n");
-
-    while (textPos < s.length()) {
-      int textLeft = s.length() - textPos;
-      int screenLeft = screenWidth - format;
-      int lineLength = textLeft < screenLeft ? textLeft : screenLeft;
-      String line = s.substring(textPos, textPos + lineLength);
-      String formattedLine = String.format("%s%s%n", " ".repeat(format), line);
-      sb.append(formattedLine);
-      textPos += lineLength;
-    }
-  }
-
-
   /**
    * Application entry point.
    *
@@ -273,14 +197,14 @@ public class JwtTokenUtilsConsole {
     try {
       if (args == null || args.length < 1) {
         log.info("Missed required parameters (2 at least).");
-        printHelp();
+        PrintUtility.printHelp();
         return;
       }
 
       cmd_args = args;
 
       if (checkForParam(Parameters.HELP)) {
-        printHelp();
+        PrintUtility.printHelp();
         return;
       }
 
