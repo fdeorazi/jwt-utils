@@ -20,12 +20,12 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
 import java.util.Base64;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.dof.java.jwt.exception.RequestTokenHttpException;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -34,10 +34,9 @@ import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
-
-
 /**
- * Jar utility to generate token json web token through an issuer and a private key
+ * Jar utility to generate token json web token through an issuer and a private
+ * key
  *
  * @author fabio.deorazi
  *
@@ -61,7 +60,6 @@ public class JwtTokenUtils {
 
   Properties props;
 
-
   public static JwtTokenUtilsBuilder builder() {
     return new JwtTokenUtilsBuilder();
   }
@@ -77,6 +75,7 @@ public class JwtTokenUtils {
     this.targetTokenType = builder.targetTokenType;
     this.publicKeyFile = builder.publicKeyFile;
     this.verbose = builder.verbose;
+    this.base64privateKey = builder.base64privateKey;
   }
 
   private String readKey(String filePath) throws IOException {
@@ -126,10 +125,9 @@ public class JwtTokenUtils {
     return content;
   }
 
-
-
   /**
-   * Generate a self signed jwt for identity token Invoke gcp endpoint with generated jwt.
+   * Generate a self signed jwt for identity token Invoke gcp endpoint with
+   * generated jwt.
    *
    * @return
    * @throws NoSuchAlgorithmException
@@ -140,7 +138,9 @@ public class JwtTokenUtils {
   public String generateSelfSignedJwt()
       throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     Assert.present(serviceAccount, "Service account cannot be null.");
-    Assert.present(targetServiceUrl, "Target service url cannot be null.");
+    if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
+      Assert.present(targetServiceUrl, "Target service url cannot be null.");
+    }
     Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
 
     if (keyFile != null) {
@@ -158,17 +158,15 @@ public class JwtTokenUtils {
     if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
       claims.put("scope",
           scope == null || scope.isBlank() ? JwtProps.GCP_OAUTH2_SCOPE.val() : scope);
-      claims.put("aud", "https://oauth2.googleapis.com/token");
-    }
-
-    if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
+      claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
+    } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
       claims.put("target_audience", targetServiceUrl);
       claims.put("sub", serviceAccount);
-      // claims.put("iss", "https://accounts.google.com");
       claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
+    } else if (targetTokenType.equals(TargetTokenType.SIGN_ONLY)) {
+      claims.put("aud", projectId);
     }
 
-    // claims.put("aud", serviceAccount);
     claims.put("iss", serviceAccount);
     claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
     claims.put("iat", System.currentTimeMillis() / 1000);
@@ -184,38 +182,6 @@ public class JwtTokenUtils {
       PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
     }
     return jwt;
-  }
-
-  /**
-   * 
-   * @return
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
-   * @throws IOException
-   * 
-   *         create jwt token head { "typ" : "JWT", "alg" : "RS256" } claims { "issueat" : "now",
-   *         "exp" : "1day", "aud" : "project_id" }
-   */
-  public String generateSelfSignedJwtNodeMcu()
-      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
-    if (keyFile != null) {
-      base64privateKey = readPrivateKey(keyFile);
-    }
-
-    PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(base64privateKey.getBytes());
-
-    KeyFactory keyFactory = KeyFactory.getInstance(RSA);
-    PrivateKey privateKey = keyFactory.generatePrivate(spec);
-
-    Map<String, Object> header = new HashMap<>();
-    header.put("typ", "JWT");
-    header.put("alg", "RS256");
-
-    return Jwts.builder().setIssuedAt(new Date(System.currentTimeMillis())) // now
-        .setExpiration(new Date(Long.sum(System.currentTimeMillis(), 86400000))) // 1 day
-        .setAudience(this.projectId).setHeader(header)
-        .signWith(SignatureAlgorithm.RS256, privateKey).compact();
-
   }
 
   /**
@@ -249,7 +215,7 @@ public class JwtTokenUtils {
             JwtProps.CMD_COLOR0.val()));
         sb.append(JwtProps.CMD_COLOR3.val());
         PrintUtility.format(sb, payload, 0, JwtTokenUtilsConsole.SCREEN_WIDTH);
-        log.info(sb.toString());
+        log.info("{}", sb);
         sb.append(JwtProps.CMD_COLOR0.val());
       }
 
@@ -260,7 +226,7 @@ public class JwtTokenUtils {
       if (conn.getResponseCode() != 200) {
         String message = String.format("%s return error with%nstatus %s%nmessage %s",
             JwtProps.GCP_TOKEN_URL.val(), conn.getResponseCode(), conn.getResponseMessage());
-        throw new RuntimeException(message);
+        throw new RequestTokenHttpException(message);
       }
 
       try (BufferedInputStream bis = new BufferedInputStream(conn.getInputStream());
@@ -285,6 +251,8 @@ public class JwtTokenUtils {
       }
 
       return idToken;
+    } catch (RequestTokenHttpException e) {
+      throw e;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -315,7 +283,6 @@ public class JwtTokenUtils {
     return signedJwtObj.verify(verifier);
   }
 
-
   /**
    * 
    * @return
@@ -325,13 +292,12 @@ public class JwtTokenUtils {
    * @throws NoSuchAlgorithmException
    * @throws InvalidKeySpecException
    */
-  @Cmd(param = "rs256-verify")
+  @Cmd(param = "ssjwt-verify")
   public Boolean verifyRs256Jwt() throws JOSEException, ParseException, IOException,
       NoSuchAlgorithmException, InvalidKeySpecException {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
     Assert.present(publicKeyFile, "Miss required argument 'public key file'");
 
-    // log.trace("signedJwt: '{}', public key: '{}'", signedJwt, );
     if (signedJwt == null || !signedJwt.contains(".")) {
       throw new IllegalArgumentException("Invalid Jwt");
     }
@@ -385,7 +351,7 @@ public class JwtTokenUtils {
    * @throws InvalidKeySpecException
    * @throws IOException
    */
-  @Cmd(param = {"idtoken", "access-token"})
+  @Cmd(param = { "idtoken", "access-token" })
   public String generateToken()
       throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     String ssjwt = generateSelfSignedJwt();

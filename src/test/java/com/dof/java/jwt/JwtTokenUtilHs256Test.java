@@ -16,8 +16,6 @@ import com.nimbusds.jose.JOSEException;
  */
 class JwtTokenUtilHs256Test {
 
-  private static final String SECRET_256_BIT = "tttttttteeeeeeeesssssssstttttttt";
-
   @Test
   void givenNoParam_whenGenHs256_thenThrowException() {
     JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().build();
@@ -26,7 +24,7 @@ class JwtTokenUtilHs256Test {
 
   @Test
   void givenParam_whenGenHs256_thenReturnCorrectJwt() throws ParseException, JOSEException {
-    JwtTokenUtilsBuilder builder = JwtTokenUtils.builder().setSharedSecret(SECRET_256_BIT);
+    JwtTokenUtilsBuilder builder = JwtTokenUtils.builder().setSharedSecret(TestConstants.SECRET_256_BIT);
     String jwt = builder.build().generateHs256Jwt();
     Assertions.assertThat(jwt).isNotBlank();
 
@@ -66,7 +64,7 @@ class JwtTokenUtilHs256Test {
   @Test
   void givenWrongJwt_whenVerifyHs256_thenThrowException() {
     JwtTokenUtils jwtTokenUtils =
-        JwtTokenUtils.builder().setSignedJwt("abc").setSharedSecret(SECRET_256_BIT).build();
+        JwtTokenUtils.builder().setSignedJwt("abc").setSharedSecret(TestConstants.SECRET_256_BIT).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.verifyHs256Jwt());
   }
 }

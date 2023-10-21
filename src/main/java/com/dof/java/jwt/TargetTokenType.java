@@ -10,21 +10,26 @@ import java.util.Optional;
  *
  */
 public enum TargetTokenType {
-  ID_TOKEN("idtoken"),
-  ACCESS_TOKEN("access-token");
-  
+  ID_TOKEN("idtoken"), ACCESS_TOKEN("access-token"), SIGN_ONLY("sign-only");
+
   String val;
-  
+
   TargetTokenType(String val) {
     this.val = val;
   }
   
+  /**
+   *
+   * @param value
+   * @return
+   */
   public static TargetTokenType get(String value) {
-    Optional<TargetTokenType> result = Arrays.stream(TargetTokenType.values()).filter(item -> value.equals(item.val)).findAny();
-    if(result.isEmpty()) {
+    Optional<TargetTokenType> result =
+        Arrays.stream(TargetTokenType.values()).filter(item -> value.equals(item.val)).findAny();
+    if (result.isEmpty()) {
       throw new IllegalArgumentException("Passed wrong Target Jwt Token type.");
     } else {
       return result.get();
-    }  
+    }
   }
 }

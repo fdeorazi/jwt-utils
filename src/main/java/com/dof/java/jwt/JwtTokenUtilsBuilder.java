@@ -75,6 +75,14 @@ public class JwtTokenUtilsBuilder {
     return this;
   }
   
+  public JwtTokenUtilsBuilder setScope(String scope) {
+    this.scope = scope;
+    return this;
+  }
+
+  //@Injected("jwtTokenUtilsImpl")
+  //JwtTokenUtils jwtTokenUtils;
+  
   public JwtTokenUtils build() {
     return new JwtTokenUtils(this);
   }

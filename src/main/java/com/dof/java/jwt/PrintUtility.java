@@ -33,9 +33,8 @@ public class PrintUtility {
    * @param encodedJwt self signed jwt.
    */
   public static synchronized void prettyPrintJwt(String encodedJwt, String label) {
-    log.info("\n{}{}{}", JwtProps.CMD_COLOR1.val(), label, "(decoded):");
-    // log.info("{}{}{}", JwtProps.CMD_COLOR2.val(), "Raw Jwt: ", JwtProps.CMD_COLOR0.val());
-    // log.info("{}", encodedJwt);
+    log.info("{}{}{}{}", JwtProps.CMD_COLOR1.val(), label, "(decoded):", JwtProps.CMD_COLOR0.val());
+    //log.info("{}{}", "_".repeat(menuWidth), JwtProps.CMD_COLOR0.val());
     String[] jwtSplitted = encodedJwt.split("\\.");
     String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
     String jwtClaims = new String(Base64.getDecoder().decode(jwtSplitted[1]));
@@ -76,15 +75,28 @@ public class PrintUtility {
     }
   }
 
+  public static void logo() {
+    StringBuilder sb = new StringBuilder();
+    logo(sb);
+    log.info("{}",sb);
+  }
+  
+  public static void logo(StringBuilder sb) {
+    sb.append(String.format("%s%s", JwtProps.CMD_COLOR1.val(), "_".repeat(menuWidth)));
+    sb.append(JwtProps.CMD_TITLE.val());
+    sb.append(String.format("%s%s%s%n", JwtProps.CMD_BGCOLOR1.val() , " ".repeat(menuWidth), JwtProps.CMD_COLOR0.val()));
+  }
+  
   /**
    * Prints Help menu.
    * 
    */
   public static void printHelp() {
     StringBuilder sb = new StringBuilder();
-    sb.append(JwtProps.CMD_TITLE.val());
 
-    sb.append(String.format("%n%s%s%s%n%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL1.val(),
+    logo(sb);
+    
+    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL1.val(),
         JwtProps.CMD_COLOR0.val()));
 
     sb.append(String.format("%4c%s%-15s%n%n", 32, JwtProps.CMD_COLOR3.val(),
@@ -95,12 +107,12 @@ public class PrintUtility {
         JwtProps.CMD_COLOR0.val()));
 
     // commands
-
+    
     Stream.of(Parameters.values()).filter(p -> !p.shortParam.startsWith("-")).forEach(p -> {
 
       // command name
 
-      sb.append(String.format("%n%4c%s%-11s%s", 32, JwtProps.CMD_COLOR5.val(), p.shortParam,
+      sb.append(String.format("%4c%s%-11s%s", 32, JwtProps.CMD_COLOR5.val(), p.shortParam,
           JwtProps.CMD_COLOR0.val()));
 
       // command description
@@ -135,7 +147,7 @@ public class PrintUtility {
       } catch (Exception e) {
       }
 
-      sb.append(String.format("%n%4c%s%s, %-19s%s", 32, JwtProps.CMD_COLOR5.val(), p.shortParam,
+      sb.append(String.format("%4c%s%s, %-19s%s", 32, JwtProps.CMD_COLOR5.val(), p.shortParam,
           p.verboseParam, JwtProps.CMD_COLOR0.val()));
       sb.append(JwtProps.CMD_COLOR3.val());
       PrintUtility.format(sb, jwtp != null ? jwtp.val() : "", 8, menuWidth);
@@ -143,11 +155,11 @@ public class PrintUtility {
     });
 
     // examples
-    sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), "Examples",
+    sb.append(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Examples",
         JwtProps.CMD_COLOR0.val()));
     sb.append(JwtProps.CMD_COLOR3.val());
     PrintUtility.format(sb, JwtProps.CMD_EXAMPLE1_DESC.val(), 4, menuWidth);
-    sb.append(JwtProps.CMD_COLOR6.val());
+    sb.append(JwtProps.CMD_COLOR3.val());
     PrintUtility.format(sb, JwtProps.CMD_EXAMPLE1.val(), 6, menuWidth);
     sb.append(JwtProps.CMD_COLOR0.val());
 

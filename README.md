@@ -1,2 +1,2 @@
 # jwt-utils
-Jason Web Token Utilities
+Json Web Token Utilities

@@ -51,7 +51,8 @@ public class JwtTokenUtilsConsole {
     VERBOSE("-v", "--verbose", 14, new int[] {}),
     HELP("-h", "--help", 15, new int[] {}),
     PUBLIC_KEY("-pk", "--public-key", 16, new int[] {}),
-    RS256_VERIFY("rs256-verify", "rs256-verify", 17, new int[] {16, 12});
+    SSJWT_VERIFY("ssjwt-verify", "ssjwt-verify", 17, new int[] {16, 12}),
+    SCOPE("-sc", "--scope", 18, new int[] {});
 
     String shortParam;
     String verboseParam;
@@ -73,7 +74,6 @@ public class JwtTokenUtilsConsole {
       return Stream.of(Parameters.values()).filter(p -> p.id == id).findAny();
     }
   }
-
 
   // LOGGING CONFIG
   static {
@@ -98,7 +98,7 @@ public class JwtTokenUtilsConsole {
       String param = iter.next();
       if (Parameters.HS256.isEqual(param) || Parameters.HS256_VERIFY.isEqual(param)
           || Parameters.SSJWT.isEqual(param) || Parameters.ID_TOKEN.isEqual(param)
-          || Parameters.ACCESS_TOKEN.isEqual(param) || Parameters.RS256_VERIFY.isEqual(param)) {
+          || Parameters.ACCESS_TOKEN.isEqual(param) || Parameters.SSJWT_VERIFY.isEqual(param)) {
         operation = param;
         if (Parameters.ID_TOKEN.isEqual(param)) {
           builder.setTargetTokenType(TargetTokenType.ID_TOKEN);
@@ -138,6 +138,10 @@ public class JwtTokenUtilsConsole {
         Assert.hasNext(iter);
         builder.setTargetServiceUrl(iter.next());
 
+      } else if (Parameters.SCOPE.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setScope(iter.next());
+
       } else if (Parameters.PUBLIC_KEY.isEqual(param)) {
         Assert.hasNext(iter);
         builder.setPublicKeyFile(iter.next());
@@ -150,14 +154,11 @@ public class JwtTokenUtilsConsole {
     Optional<Method> optional = findMethod(operation);
 
     if (optional.isPresent()) {
-      // optional.get().getReturnType()
+      if (checkForParam(Parameters.VERBOSE)) {
+        PrintUtility.logo();
+      }
+
       Object result = optional.get().invoke(builder.build());
-      /*
-       * if (result instanceof String && !Parameters.HS256_VERIFY.isEqual(operation) &&
-       * !Parameters.ACCESS_TOKEN.isEqual(operation) && checkForParam(Parameters.VERBOSE)) {
-       * PrintUtility.prettyPrintJwt((String) result, "Final Jwt "); }
-       */
-      // log.info("{}", result);
 
       if (checkForParam(Parameters.VERBOSE)) {
         log.info(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Token",
@@ -165,11 +166,9 @@ public class JwtTokenUtilsConsole {
       }
       System.out.println(result);
     } else {
-      throw new RuntimeException("Miss method");
+      throw new RuntimeException("Miss command.");
     }
   }
-
-
 
   private static void loggingConf() {
     try (InputStream in =
@@ -181,19 +180,17 @@ public class JwtTokenUtilsConsole {
     }
   }
 
-
   private static boolean checkForParam(Parameters toFind) {
     return Stream.of(cmd_args).anyMatch(
         p -> (p.equalsIgnoreCase(toFind.shortParam) || p.equalsIgnoreCase(toFind.verboseParam)));
   }
-
 
   /**
    * Application entry point.
    *
    * @param args application arguments
    */
-  public static void main(String[] args) {
+  public static void main(String... args) {
     try {
       if (args == null || args.length < 1) {
         log.info("Missed required parameters (2 at least).");
