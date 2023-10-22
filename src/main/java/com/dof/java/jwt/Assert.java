@@ -11,20 +11,20 @@ import java.util.Iterator;
 public class Assert {
 
   private Assert() {}
-  
+
   /**
-   * Check only for null object
-   * 
-   * @param obj
-   * @param failMessage
+   * Check only for null object.
+   *
+   * @param obj Object to check.
+   * @param failMessage Message to put in exception.
    * @throws IllegalArgumentException if check is true
    */
   public static void notNull(Object obj, String failMessage) {
-    if(obj == null) {
+    if (obj == null) {
       throw new IllegalArgumentException(failMessage);
     }
   }
-  
+
   /**
    * Check if a string is not null, empty and black.
    *

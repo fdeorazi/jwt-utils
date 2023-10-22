@@ -1,6 +1,5 @@
 package com.dof.java.jwt;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayOutputStream;
@@ -18,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.dof.java.jwt.JwtTokenUtilsConsole.Parameters;
+import com.dof.java.jwt.enums.TargetTokenType;
 
 /**
  * Test the entry point class when use from console.
@@ -86,7 +86,8 @@ class JwtTokenUtilsConsoleTest {
     JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.SERVICE_ACCOUNT.shortParam,
         TestConstants.SERVICE_ACCOUNT, Parameters.TARGET_SERVICE.shortParam,
         TestConstants.TARGET_SERVICE, Parameters.KEY_FILE.shortParam, TestConstants.KEY_FILE,
-        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val, Parameters.VERBOSE.verboseParam);
+        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val(),
+        Parameters.VERBOSE.verboseParam);
 
     log.info(outCaptor.toString());
     Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
@@ -102,7 +103,8 @@ class JwtTokenUtilsConsoleTest {
     JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.SERVICE_ACCOUNT.shortParam,
         TestConstants.SERVICE_ACCOUNT, Parameters.TARGET_SERVICE.shortParam,
         TestConstants.TARGET_SERVICE, Parameters.BASE64_KEY.shortParam, base64Key,
-        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val, Parameters.VERBOSE.verboseParam);
+        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val(),
+        Parameters.VERBOSE.verboseParam);
 
     log.info(outCaptor.toString());
     Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
@@ -112,7 +114,8 @@ class JwtTokenUtilsConsoleTest {
     JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.SERVICE_ACCOUNT.shortParam,
         TestConstants.SERVICE_ACCOUNT, Parameters.TARGET_SERVICE.shortParam,
         TestConstants.TARGET_SERVICE, Parameters.KEY_FILE.shortParam, TestConstants.KEY_FILE,
-        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val, Parameters.VERBOSE.verboseParam);
+        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val(),
+        Parameters.VERBOSE.verboseParam);
 
     Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
     String ssJwt = outCaptor.toString();

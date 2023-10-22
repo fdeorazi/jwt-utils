@@ -1,4 +1,4 @@
-package com.dof.java.jwt;
+package com.dof.java.jwt.enums;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -14,14 +14,19 @@ public enum TargetTokenType {
 
   String val;
 
+  public String val() {
+    return this.val;
+  }
+  
   TargetTokenType(String val) {
     this.val = val;
   }
   
   /**
+   * Iterate enumeration to matching an element based on given value.
    *
-   * @param value
-   * @return
+   * @param value The value of enumeration element to lookup.
+   * @return the matching enumeration element.
    */
   public static TargetTokenType get(String value) {
     Optional<TargetTokenType> result =

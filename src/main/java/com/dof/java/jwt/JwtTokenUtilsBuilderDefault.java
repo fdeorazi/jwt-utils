@@ -1,11 +1,10 @@
 package com.dof.java.jwt;
 
+import com.dof.java.jwt.enums.TargetTokenType;
 import lombok.Getter;
-import lombok.Setter;
 
 /**
- * Builder class for JwtTokenUtils.
- * 
+ * Default implementation of {@link JwtTokenUtilsBuilder}.
  *
  * @author fabio.deorazi
  *
@@ -84,17 +83,8 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
     return this;
   }
 
-//  private JwtTokenUtilsContract jwtTokenUtilsContract;
-//  private boolean injected;
-//
-//  public void setJwtTokenUtils(JwtTokenUtilsContract inject) {
-//    this.jwtTokenUtilsContract = inject;
-//  }
-
+  @Override
   public JwtTokenUtils build() {
-//    if (this.jwtTokenUtilsContract == null || !injected) {
-//      this.jwtTokenUtilsContract = new JwtTokenUtilsDefault(this);
-//    }
     return new JwtTokenUtilsDefault(this);
   }
 

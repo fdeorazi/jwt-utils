@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.util.Base64;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
+import com.dof.java.jwt.enums.TargetTokenType;
 import com.dof.java.jwt.exception.RequestTokenHttpException;
 import com.jayway.jsonpath.matchers.IsJson;
 import com.jayway.jsonpath.matchers.JsonPathMatchers;

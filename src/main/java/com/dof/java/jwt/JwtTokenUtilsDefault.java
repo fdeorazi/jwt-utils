@@ -1,5 +1,30 @@
+/*
+ * Copyright 2023 Fabio De Orazi
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package com.dof.java.jwt;
 
+import com.dof.java.jwt.enums.JwtProps;
+import com.dof.java.jwt.enums.TargetTokenType;
+import com.dof.java.jwt.exception.JwtTokenUtilsException;
+import com.dof.java.jwt.exception.RequestTokenHttpException;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jwt.SignedJWT;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -25,18 +50,9 @@ import java.util.Map;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.dof.java.jwt.exception.JwtTokenUtilsException;
-import com.dof.java.jwt.exception.RequestTokenHttpException;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jwt.SignedJWT;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 
 /**
- * Jar utility to generate token json web token through an issuer and a private key
+ * Jar utility to generate token JSON Web Token through an issuer and a private key.
  *
  * @author fabio.deorazi
  *
@@ -102,6 +118,14 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     return content;
   }
 
+  /**
+   * Given private key file path it reads content and remove key header and footer.
+   * For this method the key must be in PEM format.
+   *
+   * @param filePath 
+   *        The file path of private key.
+   *         
+   */
   public String readPrivateKey(String filePath) throws IOException {
     String content = readKey(filePath);
 
@@ -111,6 +135,14 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     return content;
   }
 
+  /**
+   * Given public key file path (in PEM format) it reads content and removes header 
+   * and footer.
+   *
+   * @param filePath 
+   *        The file path of private key.
+   *         
+   */
   String readPublicKey(String filePath) throws IOException {
     String content = readKey(filePath);
 
@@ -121,15 +153,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     return content;
   }
 
-  /**
-   * Generate a self signed jwt for identity token Invoke gcp endpoint with generated jwt.
-   *
-   * @return
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
-   * @throws IOException
-   */
-  @Cmd(param = "ssjwt")
+  @Override
   public String generateSelfSignedJwt() {
     Assert.present(serviceAccount, "Service account cannot be null.");
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
@@ -155,10 +179,12 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
         claims.put("scope",
             scope == null || scope.isBlank() ? JwtProps.GCP_OAUTH2_SCOPE.val() : scope);
         claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
+        
       } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
         claims.put("target_audience", targetServiceUrl);
         claims.put("sub", serviceAccount);
         claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
+        
       } else if (targetTokenType.equals(TargetTokenType.SIGN_ONLY)) {
         claims.put("aud", projectId);
       }
@@ -184,12 +210,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     }
   }
 
-  /**
-   * 
-   *
-   * @param signedJwt rs256 signed jwt
-   * @return the final gcp access token
-   */
+  @Override
   public String gcpToken(String signedJwt) {
     String idToken = null;
     try {
@@ -258,13 +279,8 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     }
   }
 
-  /**
-   * 
-   * @param sjwt
-   * @param sharedSecret
-   * @return
-   */
-  @Cmd(param = "hs256-verify")
+  
+  @Override
   public boolean verifyHs256Jwt() {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
     Assert.present(sharedSecret, "Miss required argument 'shared secret'");
@@ -286,16 +302,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     }
   }
 
-  /**
-   * 
-   * @return
-   * @throws JOSEException
-   * @throws ParseException
-   * @throws IOException
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
-   */
-  @Cmd(param = "ssjwt-verify")
+  @Override
   public boolean verifyRs256Jwt() {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
     Assert.present(publicKeyFile, "Miss required argument 'public key file'");
@@ -324,13 +331,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     }
   }
 
-  /**
-   * Generates an HMAC signed jwt.
-   *
-   * @param sharedSecret shared secret to sign and verify the hmac jwt.
-   * @return the signed jwt
-   */
-  @Cmd(param = "hs256")
+  @Override
   public String generateHs256Jwt() {
     Assert.present(sharedSecret, "Shared secret cannot be null");
     Assert.atLeast(sharedSecret, 32);
@@ -347,19 +348,17 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     claims.put("iat", now);
     claims.put("exp", now + 86400);
 
-    return Jwts.builder().setHeader(headers).setClaims(claims)
+    String jwt = Jwts.builder().setHeader(headers).setClaims(claims)
         .signWith(SignatureAlgorithm.HS256, sharedSecret.getBytes(StandardCharsets.UTF_8))
         .compact();
+    
+    if (verbose) {
+      PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
+    }
+    return jwt;
   }
 
-  /**
-   * 
-   * @return
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
-   * @throws IOException
-   */
-  @Cmd(param = {"idtoken", "access-token"})
+  @Override
   public String generateToken() {
     String ssjwt = generateSelfSignedJwt();
     return gcpToken(ssjwt);
