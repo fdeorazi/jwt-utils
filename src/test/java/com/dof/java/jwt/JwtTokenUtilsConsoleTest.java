@@ -31,7 +31,7 @@ class JwtTokenUtilsConsoleTest {
 
   private static void loggingConf() {
     try (InputStream in =
-        JwtTokenUtils.class.getClassLoader().getResourceAsStream("logging.properties")) {
+        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("logging.properties")) {
       LogManager.getLogManager().readConfiguration(in);
     } catch (IOException e) {
       System.err.printf(e.getMessage());
@@ -97,7 +97,7 @@ class JwtTokenUtilsConsoleTest {
     URL url = this.getClass().getClassLoader().getResource("pk4096.pem");
     String filePath = url.getPath();
     String base64Key =
-        assertDoesNotThrow(() -> JwtTokenUtils.builder().build().readPrivateKey(filePath));
+        assertDoesNotThrow(() -> JwtTokenUtilsInit.builder().build().readPrivateKey(filePath));
 
     JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.SERVICE_ACCOUNT.shortParam,
         TestConstants.SERVICE_ACCOUNT, Parameters.TARGET_SERVICE.shortParam,

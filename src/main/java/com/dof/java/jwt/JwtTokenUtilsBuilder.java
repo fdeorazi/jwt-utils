@@ -1,90 +1,67 @@
 package com.dof.java.jwt;
 
 /**
- * Builder class for JwtTokenUtils.
- * 
+ *
  *
  * @author fabio.deorazi
  *
  */
-public class JwtTokenUtilsBuilder {
+public interface JwtTokenUtilsBuilder {
   
-  String projectId;
-  String serviceAccount;
-  String base64privateKey;
-  String sharedSecret;
-  String scope;
-  String signedJwt;
-  String keyFile;
-  String targetServiceUrl;
-  TargetTokenType targetTokenType;
-  String publicKeyFile;
-  boolean verbose;
+  JwtTokenUtilsBuilder setProjectId(String projectId);
+
+  JwtTokenUtilsBuilder setServiceAccount(String serviceAccount);
+
+  JwtTokenUtilsBuilder setBase64PrivateKey(String base64PrivateKey); 
+
+  JwtTokenUtilsBuilder setSharedSecret(String sharedSecret); 
+
+  JwtTokenUtilsBuilder setSignedJwt(String signedJwt); 
+
+  JwtTokenUtilsBuilder setKeyFile(String keyFile); 
+
+  JwtTokenUtilsBuilder setTargetServiceUrl(String targetServiceUrl);
+
+  JwtTokenUtilsBuilder setTargetTokenType(TargetTokenType targetTokenType); 
   
+  JwtTokenUtilsBuilder setPublicKeyFile(String publicKeyFile); 
+ 
+  JwtTokenUtilsBuilder setVerbose(boolean verbose); 
+  
+  JwtTokenUtilsBuilder setScope(String scope);
 
-  public JwtTokenUtilsBuilder setProjectId(String projectId) {
-    this.projectId = projectId;
-    return this;
-  }
-
-  public JwtTokenUtilsBuilder setServiceAccount(String serviceAccount) {
-    this.serviceAccount = serviceAccount;
-    return this;
-  }
-
-  public JwtTokenUtilsBuilder setBase64PrivateKey(String base64PrivateKey) {
-    this.base64privateKey = base64PrivateKey;
-    return this;
-  }
-
-  public JwtTokenUtilsBuilder setSharedSecret(String sharedSecret) {
-    this.sharedSecret = sharedSecret;
-    return this;
-  }
-
-  public JwtTokenUtilsBuilder setSignedJwt(String signedJwt) {
-    this.signedJwt = signedJwt;
-    return this;
-  }
-
-  public JwtTokenUtilsBuilder setKeyFile(String keyFile) {
-    this.keyFile = keyFile;
-    return this;
-  }
-
-
-  public JwtTokenUtilsBuilder setTargetServiceUrl(String targetServiceUrl) {
-    this.targetServiceUrl = targetServiceUrl;
-    return this;
-  }
-
-
-  public JwtTokenUtilsBuilder setTargetTokenType(TargetTokenType targetTokenType) {
-    this.targetTokenType = targetTokenType;
-    return this;
-  }
+  JwtTokenUtils build();
   
   
-  public JwtTokenUtilsBuilder setPublicKeyFile(String publicKeyFile) {
-    this.publicKeyFile = publicKeyFile;
-    return this;
-  }
+  public String getBase64privateKey();
 
-  public JwtTokenUtilsBuilder setVerbose(boolean verbose) {
-    this.verbose = verbose;
-    return this;
-  }
+  public String getProjectId();
+    
+
+  public String getServiceAccount();
+    
+
+  public String getSharedSecret();
+    
+
+  public String getScope();
+    
+
+  public String getSignedJwt();
+    
+
+  public String getKeyFile();
+   
+  public String getTargetServiceUrl();
+    
+
+  public TargetTokenType getTargetTokenType();
+   
+
+  public String getPublicKeyFile();
+   
+
+  public boolean isVerbose();
+    
   
-  public JwtTokenUtilsBuilder setScope(String scope) {
-    this.scope = scope;
-    return this;
-  }
-
-  //@Injected("jwtTokenUtilsImpl")
-  //JwtTokenUtils jwtTokenUtils;
-  
-  public JwtTokenUtils build() {
-    return new JwtTokenUtils(this);
-  }
-
 }

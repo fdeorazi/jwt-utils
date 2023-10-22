@@ -28,6 +28,12 @@ public class JwtTokenUtilsConsole {
 
   public static final int SCREEN_WIDTH = 100;
 
+  private JwtTokenUtilsBuilder builder;
+  
+  public JwtTokenUtilsConsole(JwtTokenUtilsBuilder builder) {
+    this.builder = builder;
+  }
+  
   /**
    * Program available parameters.
    *
@@ -86,12 +92,18 @@ public class JwtTokenUtilsConsole {
             .of(m.getAnnotation(Cmd.class).param()).anyMatch(p -> p.equalsIgnoreCase(operation)))
         .findFirst();
   }
+  
 
-  private void evalMethod(String... args)
+  protected void evalMethod(String... args)
       throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
-    JwtTokenUtilsBuilder builder = JwtTokenUtils.builder();
+    cmd_args = args;
 
+    if (checkForParam(Parameters.HELP)) {
+      PrintUtility.printHelp();
+      return;
+    }
+    
     Iterator<String> iter = new ArrayIterator<>(args);
     String operation = "";
     while (iter.hasNext()) {
@@ -158,7 +170,8 @@ public class JwtTokenUtilsConsole {
         PrintUtility.logo();
       }
 
-      Object result = optional.get().invoke(builder.build());
+      JwtTokenUtils jwtTokenUtil = builder.build();
+      Object result = optional.get().invoke(jwtTokenUtil);
 
       if (checkForParam(Parameters.VERBOSE)) {
         log.info(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Token",
@@ -172,7 +185,7 @@ public class JwtTokenUtilsConsole {
 
   private static void loggingConf() {
     try (InputStream in =
-        JwtTokenUtils.class.getClassLoader().getResourceAsStream("logging.properties")) {
+        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("logging.properties")) {
       LogManager.getLogManager().readConfiguration(in);
     } catch (IOException e) {
       System.err.printf(e.getMessage());
@@ -198,19 +211,7 @@ public class JwtTokenUtilsConsole {
         return;
       }
 
-      cmd_args = args;
-
-      if (checkForParam(Parameters.HELP)) {
-        PrintUtility.printHelp();
-        return;
-      }
-
-      log.debug("Passed arguments: {}", args.length);
-      Arrays.stream(args).forEach(arg -> {
-        log.debug("{}\n", arg);
-      });
-
-      new JwtTokenUtilsConsole().evalMethod(args);
+      new JwtTokenUtilsConsole(new JwtTokenUtilsBuilderDefault()).evalMethod(args);
 
     } catch (Exception e) {
       String errorMessage;

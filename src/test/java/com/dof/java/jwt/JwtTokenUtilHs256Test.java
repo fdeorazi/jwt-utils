@@ -18,13 +18,14 @@ class JwtTokenUtilHs256Test {
 
   @Test
   void givenNoParam_whenGenHs256_thenThrowException() {
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().build();
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder().build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateHs256Jwt());
   }
 
   @Test
   void givenParam_whenGenHs256_thenReturnCorrectJwt() throws ParseException, JOSEException {
-    JwtTokenUtilsBuilder builder = JwtTokenUtils.builder().setSharedSecret(TestConstants.SECRET_256_BIT);
+    JwtTokenUtilsBuilder builder =
+        JwtTokenUtilsInit.builder().setSharedSecret(TestConstants.SECRET_256_BIT);
     String jwt = builder.build().generateHs256Jwt();
     Assertions.assertThat(jwt).isNotBlank();
 
@@ -33,7 +34,7 @@ class JwtTokenUtilHs256Test {
 
   @Test
   void givenIncorrectSecret_whenGenHs256_thenThrowException() throws ParseException, JOSEException {
-    JwtTokenUtilsBuilder builder = JwtTokenUtils.builder().setSharedSecret("Hello");
+    JwtTokenUtilsBuilder builder = JwtTokenUtilsInit.builder().setSharedSecret("Hello");
     Throwable t =
         assertThrows(IllegalArgumentException.class, () -> builder.build().generateHs256Jwt());
     Assertions.assertThat(t.getMessage()).containsIgnoringCase("at least");
@@ -43,19 +44,21 @@ class JwtTokenUtilHs256Test {
   void givenNoParams_whenVerifyHs256_thenThrowException() {
 
 
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().build();
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder().build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.verifyHs256Jwt());
   }
 
   @Test
   void givenNoFirstParam_whenVerifyHs256_thenThrowException() {
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().setSignedJwt("test").build();
+    JwtTokenUtils jwtTokenUtils =
+        JwtTokenUtilsInit.builder().setSignedJwt("test").build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.verifyHs256Jwt());
   }
 
   @Test
   void givenNoSecondParam_whenVerifyHs256_thenThrowException() {
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().setSharedSecret("test").build();
+    JwtTokenUtils jwtTokenUtils =
+        JwtTokenUtilsInit.builder().setSharedSecret("test").build();
 
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.verifyHs256Jwt());
 
@@ -63,8 +66,8 @@ class JwtTokenUtilHs256Test {
 
   @Test
   void givenWrongJwt_whenVerifyHs256_thenThrowException() {
-    JwtTokenUtils jwtTokenUtils =
-        JwtTokenUtils.builder().setSignedJwt("abc").setSharedSecret(TestConstants.SECRET_256_BIT).build();
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder().setSignedJwt("abc")
+        .setSharedSecret(TestConstants.SECRET_256_BIT).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.verifyHs256Jwt());
   }
 }

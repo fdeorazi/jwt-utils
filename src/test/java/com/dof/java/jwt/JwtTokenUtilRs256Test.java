@@ -27,13 +27,13 @@ class JwtTokenUtilRs256Test {
 
   @Test
   void givenNoParamers_whenSsJwtForIdToken_thenThrowException() {
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder().build();
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder().build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
   }
 
   @Test
   void givenNoServiceAccount_whenSsJwtForIdToken_thenThrowException() {
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder()
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
         .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
         .setTargetTokenType(TargetTokenType.ID_TOKEN).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
@@ -41,7 +41,7 @@ class JwtTokenUtilRs256Test {
 
   @Test
   void givenNoTargetService_whenSsJwtForIdToken_thenThrowException() {
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder()
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
         .setServiceAccount(TestConstants.SERVICE_ACCOUNT).setKeyFile(TestConstants.KEY_FILE)
         .setTargetTokenType(TargetTokenType.ID_TOKEN).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
@@ -50,7 +50,7 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenNoBase64KeyNoKeyFile_whenSsJwtForIdToken_thenThrowException() {
     JwtTokenUtils jwtTokenUtils =
-        JwtTokenUtils.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
+        JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
             .setTargetServiceUrl(TestConstants.TARGET_SERVICE)
             .setTargetTokenType(TargetTokenType.ID_TOKEN).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
@@ -59,7 +59,7 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenAllParams_whenSsJwtForIdToken_thenReturnCorrectJwt() {
     JwtTokenUtils jwtTokenUtils =
-        JwtTokenUtils.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
+        JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
             .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
             .setTargetTokenType(TargetTokenType.ID_TOKEN).build();
     String jwt = assertDoesNotThrow(() -> jwtTokenUtils.generateSelfSignedJwt());
@@ -76,7 +76,7 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenAllParams_whenSsJwtForAccessToken_thenReturnCorrectJwt() {
     JwtTokenUtils jwtTokenUtils =
-        JwtTokenUtils.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
+        JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
             .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
             .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build();
     String jwt = assertDoesNotThrow(() -> jwtTokenUtils.generateSelfSignedJwt());
@@ -93,11 +93,11 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenSignedJwt_whenVerify_theReturnVerified() throws NoSuchAlgorithmException,
       InvalidKeySpecException, IOException, JOSEException, ParseException {
-    String ssjwt = JwtTokenUtils.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
+    String ssjwt = JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
         .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
         .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build().generateSelfSignedJwt();
 
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder()
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
         .setPublicKeyFile(TestConstants.PUB_KEY_FILE).setSignedJwt(ssjwt).build();
     assertTrue(assertDoesNotThrow(() -> jwtTokenUtils.verifyRs256Jwt()));
 
@@ -106,12 +106,12 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenInvalidSignedJwt_whenVerify_theThrowException() throws NoSuchAlgorithmException,
       InvalidKeySpecException, IOException, JOSEException, ParseException {
-    String ssjwt = JwtTokenUtils.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
+    String ssjwt = JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
         .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
         .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build().generateSelfSignedJwt();
     ssjwt = ssjwt.replace(".", ",");
 
-    JwtTokenUtils jwtTokenUtils = JwtTokenUtils.builder()
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
         .setPublicKeyFile(TestConstants.PUB_KEY_FILE).setSignedJwt(ssjwt).build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.verifyRs256Jwt());
 
@@ -120,7 +120,7 @@ class JwtTokenUtilRs256Test {
   @Test
   void givenAllParams_whenGenToken_thenReturnCorrectJwt() {
     JwtTokenUtils jwtTokenUtils =
-        JwtTokenUtils.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
+        JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
             .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
             .setTargetTokenType(TargetTokenType.ID_TOKEN).setVerbose(true).build();
     assertThrows(RequestTokenHttpException.class, () -> jwtTokenUtils.generateToken());

@@ -12,7 +12,7 @@ class JwtTokenUtilReadPrivateKeyTest {
   void givenFileName_whenRead_returnBase64Key() throws IOException {
     URL url = this.getClass().getClassLoader().getResource("pk2048.pem");
     String filePath = url.getPath();
-    String b64Key = JwtTokenUtils.builder().build().readPrivateKey(filePath);
+    String b64Key = JwtTokenUtilsInit.builder().build().readPrivateKey(filePath);
     assertThat(b64Key).doesNotContain(System.lineSeparator());
   }
 }
