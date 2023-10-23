@@ -14,6 +14,7 @@
 
 package com.dof.java.jwt;
 
+import com.dof.java.jwt.crypto.CryptoFunctions;
 import com.dof.java.jwt.enums.JwtProps;
 import com.dof.java.jwt.enums.TargetTokenType;
 import com.dof.java.jwt.exception.JwtTokenUtilsException;
@@ -22,6 +23,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.shaded.gson.Gson;
 import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -95,6 +97,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
     // test purpose: search key inside sources
     if (!key.exists()) {
+
       URL url = this.getClass().getClassLoader().getResource(filePath);
       if (url != null) {
         filePath = url.getPath();
@@ -119,12 +122,11 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   }
 
   /**
-   * Given private key file path it reads content and remove key header and footer.
-   * For this method the key must be in PEM format.
+   * Given private key file path it reads content and remove key header and footer. For this method
+   * the key must be in PEM format.
    *
-   * @param filePath 
-   *        The file path of private key.
-   *         
+   * @param filePath The file path of private key.
+   * 
    */
   public String readPrivateKey(String filePath) throws IOException {
     String content = readKey(filePath);
@@ -136,12 +138,10 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   }
 
   /**
-   * Given public key file path (in PEM format) it reads content and removes header 
-   * and footer.
+   * Given public key file path (in PEM format) it reads content and removes header and footer.
    *
-   * @param filePath 
-   *        The file path of private key.
-   *         
+   * @param filePath The file path of private key.
+   * 
    */
   String readPublicKey(String filePath) throws IOException {
     String content = readKey(filePath);
@@ -179,12 +179,12 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
         claims.put("scope",
             scope == null || scope.isBlank() ? JwtProps.GCP_OAUTH2_SCOPE.val() : scope);
         claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
-        
+
       } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
         claims.put("target_audience", targetServiceUrl);
         claims.put("sub", serviceAccount);
         claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
-        
+
       } else if (targetTokenType.equals(TargetTokenType.SIGN_ONLY)) {
         claims.put("aud", projectId);
       }
@@ -198,12 +198,25 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       KeyFactory keyFactory = KeyFactory.getInstance(RSA);
       PrivateKey privateKey = keyFactory.generatePrivate(spec);
 
-      String jwt = Jwts.builder().setClaims(claims).setHeader(header)
+      String sjwt = Jwts.builder().setClaims(claims).setHeader(header)
           .signWith(SignatureAlgorithm.RS256, privateKey).compact();
+
+//       Gson gson = new Gson();
+//       String jsonHeader = gson.toJson(header);
+//       String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
+//       String jsonClaims = gson.toJson(claims);
+//       String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
+//      
+//       String jwt = String.format("%s.%s", base64Header, base64Claims);
+//      
+//       String signature = CryptoFunctions.rsa256Signature2(jwt, privateKey);
+//      
+//       String sjwt = String.format("%s.%s", jwt, signature);
+
       if (verbose) {
-        PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
+        PrintUtility.prettyPrintJwt(sjwt, "Generated self signed token ");
       }
-      return jwt;
+      return sjwt;
 
     } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
       throw new JwtTokenUtilsException(e.getMessage());
@@ -279,7 +292,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     }
   }
 
-  
+
   @Override
   public boolean verifyHs256Jwt() {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
@@ -306,7 +319,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   public boolean verifyRs256Jwt() {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
     Assert.present(publicKeyFile, "Miss required argument 'public key file'");
-
+    boolean verified = false;
     try {
 
       if (signedJwt == null || !signedJwt.contains(".")) {
@@ -324,11 +337,19 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       PublicKey publicKey = keyFactory.generatePublic(spec);
 
       JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
-      return signedJwtObj.verify(verifier);
+      verified = signedJwtObj.verify(verifier);
+      // verified = CryptoFunctions.verifySignature(signedJwt, publicKey);
+
+      // } catch (Exception e) {
+      // throw e;
+      // }
+
     } catch (NumberFormatException | ParseException | IOException | NoSuchAlgorithmException
         | InvalidKeySpecException | JOSEException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
+    
+    return verified;
   }
 
   @Override
@@ -351,7 +372,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     String jwt = Jwts.builder().setHeader(headers).setClaims(claims)
         .signWith(SignatureAlgorithm.HS256, sharedSecret.getBytes(StandardCharsets.UTF_8))
         .compact();
-    
+
     if (verbose) {
       PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
     }

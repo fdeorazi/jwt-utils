@@ -99,7 +99,7 @@ class JwtTokenUtilRs256Test {
         .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build().generateSelfSignedJwt();
 
     JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
-        .setPublicKeyFile(TestConstants.PUB_KEY_FILE).setSignedJwt(ssjwt).build();
+        .setPublicKeyFile(TestConstants.PUB_KEY_FILE).setSignedJwt(ssjwt).setVerbose(true).build();
     assertTrue(assertDoesNotThrow(() -> jwtTokenUtils.verifyRs256Jwt()));
 
   }
