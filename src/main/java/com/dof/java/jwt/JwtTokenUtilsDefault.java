@@ -24,32 +24,29 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.text.ParseException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.dof.java.jwt.crypto.CryptoFunctions;
 import com.dof.java.jwt.enums.JwtProps;
 import com.dof.java.jwt.enums.TargetTokenType;
 import com.dof.java.jwt.exception.JwtTokenUtilsException;
 import com.dof.java.jwt.exception.RequestTokenHttpException;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jwt.SignedJWT;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.google.gson.Gson;
 
 /**
  * Jar utility to generate token JSON Web Token through an issuer and a private key.
@@ -130,11 +127,9 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     String content = readKey(filePath);
 
     content = content.replace("-----BEGIN PRIVATE KEY-----", "")
-        .replace("-----END PRIVATE KEY-----", "")
-        .replace("-----BEGIN RSA PRIVATE KEY-----", "")
-        .replace("-----END RSA PRIVATE KEY-----", "")
-        .replaceAll("\r\n|\n|\r", "");
-    log.debug("Read key:\n'{}'", content);
+        .replace("-----END PRIVATE KEY-----", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
+        .replace("-----END RSA PRIVATE KEY-----", "").replaceAll("\r\n|\n|\r", "");
+    log.debug("Private key:\n{}\n", content);
     return content;
   }
 
@@ -168,7 +163,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     content = content.replace("-----BEGIN PUBLIC KEY-----", "")
         .replace("-----END PUBLIC KEY-----", "").replaceAll("\r\n|\n|\r", "");
 
-    log.debug("Read key:\n'{}'", content);
+    log.debug("Public key:\n{}", content);
     return content;
   }
 
@@ -184,7 +179,6 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   public PublicKey readPublicKey(String filePath, String algorithm)
       throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
     byte[] keyDerFormat = Base64.getDecoder().decode(readPublicKey(filePath));
-    log.info("Public key: {}", new String(Base64.getEncoder().encode(keyDerFormat)));
     X509EncodedKeySpec spec = new X509EncodedKeySpec(keyDerFormat);
     KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
     return keyFactory.generatePublic(spec);
@@ -236,20 +230,24 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       KeyFactory keyFactory = KeyFactory.getInstance(RSA);
       PrivateKey privateKey = keyFactory.generatePrivate(spec);
 
-      String sjwt = Jwts.builder().setClaims(claims).setHeader(header)
-          .signWith(SignatureAlgorithm.RS256, privateKey).compact();
+      // String sjwt = Jwts.builder().setClaims(claims).setHeader(header)
+      // .signWith(SignatureAlgorithm.RS256, privateKey).compact();
 
-      // Gson gson = new Gson();
-      // String jsonHeader = gson.toJson(header);
-      // String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
-      // String jsonClaims = gson.toJson(claims);
-      // String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
-      //
-      // String jwt = String.format("%s.%s", base64Header, base64Claims);
-      //
-      // String signature = CryptoFunctions.rsa256Signature2(jwt, privateKey);
-      //
-      // String sjwt = String.format("%s.%s", jwt, signature);
+      Gson gson = new Gson();
+      String jsonHeader = gson.toJson(header);
+      String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
+      String jsonClaims = gson.toJson(claims);
+      String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
+
+      String jwt = String.format("%s.%s", base64Header, base64Claims);
+
+      byte[] signature = CryptoFunctions.signRsa256(jwt, privateKey);
+
+      String base64Signature = new String(Base64.getEncoder().encode(signature));
+      
+      log.debug("Base64 signature:\n'{}'\n",base64Signature);
+      
+      String sjwt = String.format("%s.%s", jwt, base64Signature);
 
       if (verbose) {
         PrintUtility.prettyPrintJwt(sjwt, "Generated self signed token ");
@@ -340,15 +338,16 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-      SignedJWT signedJwtObj;
-
-      signedJwtObj = SignedJWT.parse(signedJwt);
-
-      log.trace("signature: {}", signedJwtObj.getSignature());
-      JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
-
-      return signedJwtObj.verify(verifier);
-    } catch (ParseException | JOSEException e) {
+//      SignedJWT signedJwtObj;
+//
+//      signedJwtObj = SignedJWT.parse(signedJwt);
+//
+//      log.trace("signature: {}", signedJwtObj.getSignature());
+//      JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
+//      return signedJwtObj.verify(verifier);
+      return CryptoFunctions.verifyJwtSignature(signedJwt, sharedSecret);
+      
+    } catch (InvalidKeyException | NoSuchAlgorithmException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
   }
@@ -363,7 +362,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-      SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
+      //SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
 
       String base64PublicKey = readPublicKey(publicKeyFile);
 
@@ -374,16 +373,17 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       KeyFactory keyFactory = KeyFactory.getInstance(RSA);
       PublicKey publicKey = keyFactory.generatePublic(spec);
 
-      JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
-      verified = signedJwtObj.verify(verifier);
-      // verified = CryptoFunctions.verifySignature(signedJwt, publicKey);
+      // JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
+      // verified = signedJwtObj.verify(verifier);
+      verified = CryptoFunctions.verifyJwtSignature(signedJwt, publicKey);
 
       // } catch (Exception e) {
       // throw e;
       // }
 
-    } catch (NumberFormatException | ParseException | IOException | NoSuchAlgorithmException
-        | InvalidKeySpecException | JOSEException e) {
+    } catch (NumberFormatException | IOException | NoSuchAlgorithmException
+        | InvalidKeySpecException | InvalidKeyException | IllegalBlockSizeException
+        | BadPaddingException | NoSuchPaddingException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
 
@@ -407,14 +407,31 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     claims.put("iat", now);
     claims.put("exp", now + 86400);
 
-    String jwt = Jwts.builder().setHeader(headers).setClaims(claims)
-        .signWith(SignatureAlgorithm.HS256, sharedSecret.getBytes(StandardCharsets.UTF_8))
-        .compact();
+    Gson gson = new Gson();
+    String jsonHeader = gson.toJson(headers);
+    String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
+    String jsonClaims = gson.toJson(claims);
+    String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
+    
+    String jwt = String.format("%s.%s", base64Header, base64Claims);
+    
+    byte[] signature;
+    try {
+      signature = CryptoFunctions.signHs256(jwt, sharedSecret);
+    } catch (InvalidKeyException | NoSuchAlgorithmException e) {
+      throw new JwtTokenUtilsException(e.getMessage());
+    }
+    
+    String base64Signature = new String(Base64.getEncoder().encode(signature));
+    
+    log.debug("Base64 signature:\n'{}'\n",base64Signature);
+    
+    String sjwt = String.format("%s.%s", jwt, base64Signature);
 
     if (verbose) {
       PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
     }
-    return jwt;
+    return sjwt;
   }
 
   @Override

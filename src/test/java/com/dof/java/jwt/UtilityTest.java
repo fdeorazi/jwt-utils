@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
 import com.dof.java.jwt.enums.JwtProps;
 
-class UtilityTest {
+class UtilityTest implements JwtTokenUtilsTest {
   
   @Test
   void loadProperties() {

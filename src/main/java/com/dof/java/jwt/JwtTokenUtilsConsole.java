@@ -18,11 +18,11 @@ import com.dof.java.jwt.annotation.Cmd;
 import com.dof.java.jwt.enums.JwtProps;
 import com.dof.java.jwt.enums.TargetTokenType;
 import com.dof.java.jwt.exception.JwtTokenUtilsException;
-import com.fasterxml.jackson.databind.util.ArrayIterator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.logging.LogManager;
@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 public class JwtTokenUtilsConsole {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsole.class);
 
-  private static String[] cmdArgs;
+  private String[] cmdArgs;
 
   public static final int SCREEN_WIDTH = 100;
 
@@ -113,7 +113,6 @@ public class JwtTokenUtilsConsole {
 
   protected void evalMethod(String... args)
       throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-
     cmdArgs = args;
 
     if (checkForParam(Parameters.HELP)) {
@@ -121,7 +120,7 @@ public class JwtTokenUtilsConsole {
       return;
     }
 
-    Iterator<String> iter = new ArrayIterator<>(args);
+    Iterator<String> iter = Arrays.stream(args).iterator();
     String operation = "";
     while (iter.hasNext()) {
       String param = iter.next();
@@ -180,6 +179,11 @@ public class JwtTokenUtilsConsole {
       }
     }
 
+    evalExecution(operation);
+  }
+
+  private void evalExecution(String operation)
+      throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     Optional<Method> optional = findMethod(operation);
 
     if (optional.isPresent()) {
@@ -210,7 +214,7 @@ public class JwtTokenUtilsConsole {
     }
   }
 
-  private static boolean checkForParam(Parameters toFind) {
+  private boolean checkForParam(Parameters toFind) {
     return Stream.of(cmdArgs).anyMatch(
         p -> (p.equalsIgnoreCase(toFind.shortParam) || p.equalsIgnoreCase(toFind.verboseParam)));
   }

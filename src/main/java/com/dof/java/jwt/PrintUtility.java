@@ -18,10 +18,10 @@ package com.dof.java.jwt;
 
 import com.dof.java.jwt.JwtTokenUtilsConsole.Parameters;
 import com.dof.java.jwt.enums.JwtProps;
-import com.nimbusds.jose.shaded.gson.Gson;
-import com.nimbusds.jose.shaded.gson.GsonBuilder;
-import com.nimbusds.jose.shaded.gson.JsonElement;
-import com.nimbusds.jose.shaded.gson.JsonParser;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;

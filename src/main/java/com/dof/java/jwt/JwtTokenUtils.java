@@ -21,8 +21,7 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import com.dof.java.jwt.annotation.Cmd;
 import com.dof.java.jwt.enums.TargetTokenType;
-import com.dof.java.jwt.exception.JwtTokenUtilsException;
-import io.jsonwebtoken.Jwt;
+
 
 /**
  * Jar utility to generate token Json Web Token through an issuer and a private key.

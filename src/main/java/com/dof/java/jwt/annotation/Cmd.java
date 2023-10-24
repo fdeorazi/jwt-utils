@@ -6,7 +6,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import com.dof.java.jwt.JwtTokenUtils;
 import com.dof.java.jwt.JwtTokenUtilsConsole;
-import io.jsonwebtoken.Jwt;
 
 /**
  * Annotation used in {@link JwtTokenUtilsConsole} to map command line

@@ -23,21 +23,11 @@ import com.dof.java.jwt.enums.TargetTokenType;
  * Test the entry point class when use from console.
  * 
  */
-class JwtTokenUtilsConsoleTest {
+class JwtTokenUtilsConsoleTest implements JwtTokenUtilsTest {
   Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsoleTest.class);
 
   ByteArrayOutputStream outCaptor = new ByteArrayOutputStream();
   ByteArrayOutputStream errCaptor = new ByteArrayOutputStream();
-
-  private static void loggingConf() {
-    try (InputStream in =
-        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("logging.properties")) {
-      LogManager.getLogManager().readConfiguration(in);
-    } catch (IOException e) {
-      System.err.printf(e.getMessage());
-      System.exit(1);
-    }
-  }
 
   @BeforeEach
   void setup() {

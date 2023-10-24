@@ -1,7 +1,6 @@
 package com.dof.java.jwt;
 
 import com.dof.java.jwt.enums.TargetTokenType;
-import lombok.Getter;
 
 /**
  * Default implementation of {@link JwtTokenUtilsBuilder}.
@@ -9,7 +8,6 @@ import lombok.Getter;
  * @author fabio.deorazi
  *
  */
-@Getter
 public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
 
   String projectId;
@@ -81,6 +79,54 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
   public JwtTokenUtilsBuilderDefault setScope(String scope) {
     this.scope = scope;
     return this;
+  }
+
+  public String getBase64privateKey() {
+    return base64privateKey;
+  }
+
+  public void setBase64privateKey(String base64privateKey) {
+    this.base64privateKey = base64privateKey;
+  }
+
+  public String getProjectId() {
+    return projectId;
+  }
+
+  public String getServiceAccount() {
+    return serviceAccount;
+  }
+
+  public String getSharedSecret() {
+    return sharedSecret;
+  }
+
+  public String getScope() {
+    return scope;
+  }
+
+  public String getSignedJwt() {
+    return signedJwt;
+  }
+
+  public String getKeyFile() {
+    return keyFile;
+  }
+
+  public String getTargetServiceUrl() {
+    return targetServiceUrl;
+  }
+
+  public TargetTokenType getTargetTokenType() {
+    return targetTokenType;
+  }
+
+  public String getPublicKeyFile() {
+    return publicKeyFile;
+  }
+
+  public boolean isVerbose() {
+    return verbose;
   }
 
   @Override

@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.dof.java.jwt.JwtTokenUtilsConsole.Parameters;
 
 @ExtendWith(MockitoExtension.class)
-class JwtTokenUtilsConsoleUnitTest {
+class JwtTokenUtilsConsoleUnitTest implements JwtTokenUtilsTest {
   Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsoleUnitTest.class);
 
   @Mock
