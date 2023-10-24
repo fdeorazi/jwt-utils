@@ -17,9 +17,9 @@ import com.dof.java.jwt.exception.JwtTokenUtilsException;
 
 public class CryptoFunctions {
 
-  
+
   public static String rsa256Signature(String content, PrivateKey privateKey) {
-    
+
     try {
       Signature signature = Signature.getInstance("SHA256withRSA");
       signature.initSign(privateKey);
@@ -29,24 +29,47 @@ public class CryptoFunctions {
     } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
-    
+
   }
-  
-  public static boolean verifySignature(String signedJwt, PublicKey publicKey) {
+
+  /**
+   * Split JWT and pass to {@link #verifySignature(String, String, PublicKey)}.
+   *
+   * @param signedJwt
+   * @param publicKey
+   * @return
+   */
+  public static boolean verifyJwtSignature(String signedJwt, PublicKey publicKey) {
+    String[] jwtSplit = signedJwt.split("\\.");
+    return verifySignature(String.format("%s.%s", jwtSplit[0], jwtSplit[1]), jwtSplit[2],
+        publicKey);
+  }
+
+  /**
+   * 
+   * @param content
+   * @param signedContent
+   * @param publicKey
+   * @return
+   */
+  public static boolean verifySignature(String content, String signedContent, PublicKey publicKey) {
     try {
-      String[] jwtSplit = signedJwt.split("\\.");
-      String headerClaims = String.format("%s.%s", jwtSplit[0], jwtSplit[1]);
-      
       Signature signature = Signature.getInstance("SHA256withRSA");
       signature.initVerify(publicKey);
-      signature.update(headerClaims.getBytes(StandardCharsets.UTF_8));
-      return signature.verify(jwtSplit[2].getBytes(StandardCharsets.UTF_8));
+      signature.update(content.getBytes());
+      return signature.verify(signedContent.getBytes(StandardCharsets.UTF_8));
     } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+      e.printStackTrace();
       throw new JwtTokenUtilsException(e.getMessage());
     }
   }
-  
-  
+
+  /**
+   * 
+   * @param content
+   * @param privateKey
+   * @return
+   */
   public static String rsa256Signature2(String content, PrivateKey privateKey) {
     try {
       MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
@@ -54,11 +77,11 @@ public class CryptoFunctions {
 
       Cipher chiper = Cipher.getInstance("RSA");
       chiper.init(Cipher.ENCRYPT_MODE, privateKey);
-      byte[] encryptedMessage =  chiper.doFinal(messageHash);
-      
+      byte[] encryptedMessage = chiper.doFinal(messageHash);
+
       // Charset.forName("US-ASCII");
       return new String(Base64.getEncoder().encode(encryptedMessage), StandardCharsets.UTF_8);
-      
+
     } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
         | IllegalBlockSizeException | BadPaddingException e) {
       throw new JwtTokenUtilsException(e.getMessage());

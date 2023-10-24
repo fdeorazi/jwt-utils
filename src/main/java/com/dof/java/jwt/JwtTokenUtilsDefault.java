@@ -14,19 +14,6 @@
 
 package com.dof.java.jwt;
 
-import com.dof.java.jwt.crypto.CryptoFunctions;
-import com.dof.java.jwt.enums.JwtProps;
-import com.dof.java.jwt.enums.TargetTokenType;
-import com.dof.java.jwt.exception.JwtTokenUtilsException;
-import com.dof.java.jwt.exception.RequestTokenHttpException;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.shaded.gson.Gson;
-import com.nimbusds.jwt.SignedJWT;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -52,6 +39,17 @@ import java.util.Map;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.dof.java.jwt.enums.JwtProps;
+import com.dof.java.jwt.enums.TargetTokenType;
+import com.dof.java.jwt.exception.JwtTokenUtilsException;
+import com.dof.java.jwt.exception.RequestTokenHttpException;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jwt.SignedJWT;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 /**
  * Jar utility to generate token JSON Web Token through an issuer and a private key.
@@ -126,15 +124,36 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
    * the key must be in PEM format.
    *
    * @param filePath The file path of private key.
-   * 
+   * @return the private key content
    */
   public String readPrivateKey(String filePath) throws IOException {
     String content = readKey(filePath);
 
     content = content.replace("-----BEGIN PRIVATE KEY-----", "")
-        .replace("-----END PRIVATE KEY-----", "").replaceAll("\r\n|\n|\r", "");
+        .replace("-----END PRIVATE KEY-----", "")
+        .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+        .replace("-----END RSA PRIVATE KEY-----", "")
+        .replaceAll("\r\n|\n|\r", "");
     log.debug("Read key:\n'{}'", content);
     return content;
+  }
+
+  /**
+   * Return private key in java representation {@link PrivateKey}.
+   *
+   * @param filePath private key path
+   * @param algorithm which will be used in java conversion
+   * @return private key
+   * @throws NoSuchAlgorithmException if passed algorithm not found
+   * @throws InvalidKeySpecException if invalid key specification
+   * @throws IOException if private key file not found
+   */
+  public PrivateKey readPrivateKey(String filePath, String algorithm)
+      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    byte[] keyDerFormat = Base64.getDecoder().decode(readPrivateKey(filePath));
+    PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyDerFormat, algorithm);
+    KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+    return keyFactory.generatePrivate(spec);
   }
 
   /**
@@ -143,7 +162,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
    * @param filePath The file path of private key.
    * 
    */
-  String readPublicKey(String filePath) throws IOException {
+  public String readPublicKey(String filePath) throws IOException {
     String content = readKey(filePath);
 
     content = content.replace("-----BEGIN PUBLIC KEY-----", "")
@@ -152,6 +171,25 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     log.debug("Read key:\n'{}'", content);
     return content;
   }
+
+  /**
+   * 
+   * @param filePath
+   * @param algorithm
+   * @return
+   * @throws IOException
+   * @throws NoSuchAlgorithmException
+   * @throws InvalidKeySpecException
+   */
+  public PublicKey readPublicKey(String filePath, String algorithm)
+      throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    byte[] keyDerFormat = Base64.getDecoder().decode(readPublicKey(filePath));
+    log.info("Public key: {}", new String(Base64.getEncoder().encode(keyDerFormat)));
+    X509EncodedKeySpec spec = new X509EncodedKeySpec(keyDerFormat);
+    KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+    return keyFactory.generatePublic(spec);
+  }
+
 
   @Override
   public String generateSelfSignedJwt() {
@@ -201,17 +239,17 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       String sjwt = Jwts.builder().setClaims(claims).setHeader(header)
           .signWith(SignatureAlgorithm.RS256, privateKey).compact();
 
-//       Gson gson = new Gson();
-//       String jsonHeader = gson.toJson(header);
-//       String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
-//       String jsonClaims = gson.toJson(claims);
-//       String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
-//      
-//       String jwt = String.format("%s.%s", base64Header, base64Claims);
-//      
-//       String signature = CryptoFunctions.rsa256Signature2(jwt, privateKey);
-//      
-//       String sjwt = String.format("%s.%s", jwt, signature);
+      // Gson gson = new Gson();
+      // String jsonHeader = gson.toJson(header);
+      // String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
+      // String jsonClaims = gson.toJson(claims);
+      // String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
+      //
+      // String jwt = String.format("%s.%s", base64Header, base64Claims);
+      //
+      // String signature = CryptoFunctions.rsa256Signature2(jwt, privateKey);
+      //
+      // String sjwt = String.format("%s.%s", jwt, signature);
 
       if (verbose) {
         PrintUtility.prettyPrintJwt(sjwt, "Generated self signed token ");
@@ -348,7 +386,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
         | InvalidKeySpecException | JOSEException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
-    
+
     return verified;
   }
 

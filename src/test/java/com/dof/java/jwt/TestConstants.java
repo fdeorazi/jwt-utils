@@ -16,5 +16,8 @@ public class TestConstants {
 
   public static final String KEY_FILE = "pk4096.pem";
   public static final String PUB_KEY_FILE = "pk4096.pub";
+  
+  public static final String KEY_FILE_2048 = "pk2048.pem";
+  public static final String PUB_KEY_FILE_2048 = "pk2048.pub";
 
 }
