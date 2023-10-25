@@ -1,3 +1,17 @@
+/*
+ * Copyright 2023 Fabio De Orazi
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package com.dof.java.jwt;
 
 import java.io.BufferedInputStream;
@@ -9,34 +23,34 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.text.ParseException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.dof.java.jwt.crypto.CryptoFunctions;
+import com.dof.java.jwt.enums.JwtProps;
+import com.dof.java.jwt.enums.TargetTokenType;
 import com.dof.java.jwt.exception.JwtTokenUtilsException;
 import com.dof.java.jwt.exception.RequestTokenHttpException;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jwt.SignedJWT;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.google.gson.Gson;
 
 /**
- * Jar utility to generate token json web token through an issuer and a private key
+ * Jar utility to generate token JSON Web Token through an issuer and a private key.
  *
  * @author fabio.deorazi
  *
@@ -79,6 +93,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
     // test purpose: search key inside sources
     if (!key.exists()) {
+
       URL url = this.getClass().getClassLoader().getResource(filePath);
       if (url != null) {
         filePath = url.getPath();
@@ -102,40 +117,82 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     return content;
   }
 
+  /**
+   * Given private key file path it reads content and remove key header and footer. For this method
+   * the key must be in PEM format.
+   *
+   * @param filePath The file path of private key.
+   * @return the private key content
+   */
   public String readPrivateKey(String filePath) throws IOException {
     String content = readKey(filePath);
 
     content = content.replace("-----BEGIN PRIVATE KEY-----", "")
-        .replace("-----END PRIVATE KEY-----", "").replaceAll("\r\n|\n|\r", "");
-    log.debug("Read key:\n'{}'", content);
+        .replace("-----END PRIVATE KEY-----", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
+        .replace("-----END RSA PRIVATE KEY-----", "").replaceAll("\r\n|\n|\r", "");
+    log.debug("Private key:\n{}\n", content);
     return content;
   }
 
-  String readPublicKey(String filePath) throws IOException {
+  /**
+   * Return private key in java representation {@link PrivateKey}.
+   *
+   * @param filePath private key path
+   * @param algorithm which will be used in java conversion
+   * @return private key
+   * @throws NoSuchAlgorithmException if passed algorithm not found
+   * @throws InvalidKeySpecException if invalid key specification
+   * @throws IOException if private key file not found
+   */
+  public PrivateKey readPrivateKey(String filePath, String algorithm)
+      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    byte[] keyDerFormat = Base64.getDecoder().decode(readPrivateKey(filePath));
+    PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyDerFormat, algorithm);
+    KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+    return keyFactory.generatePrivate(spec);
+  }
+
+  /**
+   * Given public key file path (in PEM format) it reads content and removes header and footer.
+   *
+   * @param filePath The file path of private key.
+   * 
+   */
+  public String readPublicKey(String filePath) throws IOException {
     String content = readKey(filePath);
 
     content = content.replace("-----BEGIN PUBLIC KEY-----", "")
         .replace("-----END PUBLIC KEY-----", "").replaceAll("\r\n|\n|\r", "");
 
-    log.debug("Read key:\n'{}'", content);
+    log.debug("Public key:\n{}", content);
     return content;
   }
 
   /**
-   * Generate a self signed jwt for identity token Invoke gcp endpoint with generated jwt.
-   *
+   * 
+   * @param filePath
+   * @param algorithm
    * @return
+   * @throws IOException
    * @throws NoSuchAlgorithmException
    * @throws InvalidKeySpecException
-   * @throws IOException
    */
-  @Cmd(param = "ssjwt")
+  public PublicKey readPublicKey(String filePath, String algorithm)
+      throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    byte[] keyDerFormat = Base64.getDecoder().decode(readPublicKey(filePath));
+    X509EncodedKeySpec spec = new X509EncodedKeySpec(keyDerFormat);
+    KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+    return keyFactory.generatePublic(spec);
+  }
+
+
+  @Override
   public String generateSelfSignedJwt() {
     Assert.present(serviceAccount, "Service account cannot be null.");
+    Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
       Assert.present(targetServiceUrl, "Target service url cannot be null.");
     }
-    Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
 
     try {
 
@@ -155,10 +212,12 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
         claims.put("scope",
             scope == null || scope.isBlank() ? JwtProps.GCP_OAUTH2_SCOPE.val() : scope);
         claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
+
       } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
         claims.put("target_audience", targetServiceUrl);
         claims.put("sub", serviceAccount);
         claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
+
       } else if (targetTokenType.equals(TargetTokenType.SIGN_ONLY)) {
         claims.put("aud", projectId);
       }
@@ -172,82 +231,96 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       KeyFactory keyFactory = KeyFactory.getInstance(RSA);
       PrivateKey privateKey = keyFactory.generatePrivate(spec);
 
-      String jwt = Jwts.builder().setClaims(claims).setHeader(header)
-          .signWith(SignatureAlgorithm.RS256, privateKey).compact();
+      // String sjwt = Jwts.builder().setClaims(claims).setHeader(header)
+      // .signWith(SignatureAlgorithm.RS256, privateKey).compact();
+
+      Gson gson = new Gson();
+      String jsonHeader = gson.toJson(header);
+      String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
+      String jsonClaims = gson.toJson(claims);
+      String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
+
+      String jwt = String.format("%s.%s", base64Header, base64Claims);
+
+      byte[] signature = CryptoFunctions.signRsa256(jwt, privateKey);
+
+      String base64Signature = new String(Base64.getEncoder().encode(signature));
+
+      log.debug("Base64 signature:\n'{}'\n", base64Signature);
+
+      String sjwt = String.format("%s.%s", jwt, base64Signature);
+
       if (verbose) {
-        PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
+        PrintUtility.indentJwt(sjwt, "Generated self signed token ");
       }
-      return jwt;
+      return sjwt;
 
     } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
   }
 
-  /**
-   * 
-   *
-   * @param signedJwt rs256 signed jwt
-   * @return the final gcp access token
-   */
+  @Override
   public String gcpToken(String signedJwt) {
     String idToken = null;
     try {
 
       URL url = new URL(JwtProps.GCP_TOKEN_URL.val());
+      String grantType = JwtProps.GCP_TOKEN_REQ_PAYLOAD.val();
+      String payload = "grant_type=".concat(URLEncoder.encode(grantType, StandardCharsets.UTF_8))
+          .concat("&assertion=").concat(URLEncoder.encode(signedJwt, StandardCharsets.UTF_8));
+
+
+      byte[] postData = payload.getBytes(StandardCharsets.UTF_8);
+
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
       conn.setRequestMethod("POST");
-      conn.setRequestProperty("Accept", "*/*");
       conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-      conn.setDoOutput(true);
+      conn.setRequestProperty("charset", "utf-8");
+      conn.setRequestProperty("Content-Length", Integer.toString(postData.length));
 
-      String payload = JwtProps.GCP_TOKEN_REQ_PAYLOAD.val() + signedJwt;
-      conn.setRequestProperty("Content-Length", String.valueOf(payload.length()));
-      byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
+      conn.setDoOutput(true);
+      conn.setInstanceFollowRedirects(false);
+      conn.setUseCaches(false);
+
 
       if (verbose) {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%n%s%s%n", JwtProps.CMD_COLOR1.val(), "Invoke token endpoint"));
+        sb.append(String.format("%n%s%s%n", JwtProps.CMD_COLOR1.val(), "Invoke token request endpoint"));
         sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR5.val(), "Url"));
         sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR3.val(), url));
-        sb.append(String.format("%s%-10s%s", JwtProps.CMD_COLOR5.val(), "Payload",
+        sb.append(String.format("%s%-10s%s%n", JwtProps.CMD_COLOR5.val(), "Payload",
             JwtProps.CMD_COLOR0.val()));
         sb.append(JwtProps.CMD_COLOR3.val());
-        PrintUtility.format(sb, payload, 0, JwtTokenUtilsConsole.SCREEN_WIDTH);
+        // PrintUtility.format(sb, payload, 0, JwtTokenUtilsConsole.SCREEN_WIDTH);
+        sb.append(payload.concat("\n"));
         log.info("{}", sb);
         sb.append(JwtProps.CMD_COLOR0.val());
       }
 
       try (OutputStream os = conn.getOutputStream()) {
-        os.write(bytes, 0, bytes.length);
+        os.write(postData, 0, postData.length);
       }
 
       if (conn.getResponseCode() != 200) {
-        String message = String.format("%s return error with%nstatus %s%nmessage %s",
-            JwtProps.GCP_TOKEN_URL.val(), conn.getResponseCode(), conn.getResponseMessage());
+        String error = readFromStream(conn.getErrorStream());
+        String message = String.format(
+            "%s return error with%nstatus %s%nmessage %s%nError payload %s%n",
+            JwtProps.GCP_TOKEN_URL.val(), conn.getResponseCode(), conn.getResponseMessage(), error);
+
         throw new RequestTokenHttpException(message);
       }
 
-      try (BufferedInputStream bis = new BufferedInputStream(conn.getInputStream());
-          ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      String response = readFromStream(conn.getInputStream());
+      int start = response.indexOf(":") + 2;
+      int end = response.indexOf("\"", start);
+      idToken = end != -1 ? response.substring(start, end) : response.substring(start);
+      log.debug("Response {}", response);
 
-        byte[] buff = new byte[4096];
-        int read = 0;
-
-        while ((read = bis.read(buff)) != -1) {
-          baos.write(buff, 0, read);
-        }
-        String response = new String(baos.toByteArray());
-        int start = response.indexOf(":") + 2;
-        int end = response.indexOf("\"", start);
-        idToken = end != -1 ? response.substring(start, end) : response.substring(start);
-        log.debug("Response {}", response);
-      }
       conn.disconnect();
 
       if (this.verbose && targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-        PrintUtility.prettyPrintJwt(idToken, "Returned ID Token from GCP ");
+        PrintUtility.indentJwt(idToken, "Returned ID Token from GCP ");
       }
 
       return idToken;
@@ -258,13 +331,22 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     }
   }
 
-  /**
-   * 
-   * @param sjwt
-   * @param sharedSecret
-   * @return
-   */
-  @Cmd(param = "hs256-verify")
+  String readFromStream(InputStream in) throws IOException {
+    try (BufferedInputStream bis = new BufferedInputStream(in);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+      byte[] buff = new byte[4096];
+      int read = 0;
+
+      while ((read = bis.read(buff)) != -1) {
+        baos.write(buff, 0, read);
+      }
+      return new String(baos.toByteArray());
+    }
+  }
+
+
+  @Override
   public boolean verifyHs256Jwt() {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
     Assert.present(sharedSecret, "Miss required argument 'shared secret'");
@@ -273,39 +355,31 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-      SignedJWT signedJwtObj;
+      // SignedJWT signedJwtObj;
+      //
+      // signedJwtObj = SignedJWT.parse(signedJwt);
+      //
+      // log.trace("signature: {}", signedJwtObj.getSignature());
+      // JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
+      // return signedJwtObj.verify(verifier);
+      return CryptoFunctions.verifyJwtSignature(signedJwt, sharedSecret);
 
-      signedJwtObj = SignedJWT.parse(signedJwt);
-
-      log.trace("signature: {}", signedJwtObj.getSignature());
-      JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
-
-      return signedJwtObj.verify(verifier);
-    } catch (ParseException | JOSEException e) {
+    } catch (InvalidKeyException | NoSuchAlgorithmException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
   }
 
-  /**
-   * 
-   * @return
-   * @throws JOSEException
-   * @throws ParseException
-   * @throws IOException
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
-   */
-  @Cmd(param = "ssjwt-verify")
+  @Override
   public boolean verifyRs256Jwt() {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
     Assert.present(publicKeyFile, "Miss required argument 'public key file'");
-
+    boolean verified = false;
     try {
 
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-      SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
+      // SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
 
       String base64PublicKey = readPublicKey(publicKeyFile);
 
@@ -316,21 +390,24 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       KeyFactory keyFactory = KeyFactory.getInstance(RSA);
       PublicKey publicKey = keyFactory.generatePublic(spec);
 
-      JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
-      return signedJwtObj.verify(verifier);
-    } catch (NumberFormatException | ParseException | IOException | NoSuchAlgorithmException
-        | InvalidKeySpecException | JOSEException e) {
+      // JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
+      // verified = signedJwtObj.verify(verifier);
+      verified = CryptoFunctions.verifyJwtSignature(signedJwt, publicKey);
+
+      // } catch (Exception e) {
+      // throw e;
+      // }
+
+    } catch (NumberFormatException | IOException | NoSuchAlgorithmException
+        | InvalidKeySpecException | InvalidKeyException | IllegalBlockSizeException
+        | BadPaddingException | NoSuchPaddingException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
+
+    return verified;
   }
 
-  /**
-   * Generates an HMAC signed jwt.
-   *
-   * @param sharedSecret shared secret to sign and verify the hmac jwt.
-   * @return the signed jwt
-   */
-  @Cmd(param = "hs256")
+  @Override
   public String generateHs256Jwt() {
     Assert.present(sharedSecret, "Shared secret cannot be null");
     Assert.atLeast(sharedSecret, 32);
@@ -347,19 +424,34 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     claims.put("iat", now);
     claims.put("exp", now + 86400);
 
-    return Jwts.builder().setHeader(headers).setClaims(claims)
-        .signWith(SignatureAlgorithm.HS256, sharedSecret.getBytes(StandardCharsets.UTF_8))
-        .compact();
+    Gson gson = new Gson();
+    String jsonHeader = gson.toJson(headers);
+    String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
+    String jsonClaims = gson.toJson(claims);
+    String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
+
+    String jwt = String.format("%s.%s", base64Header, base64Claims);
+
+    byte[] signature;
+    try {
+      signature = CryptoFunctions.signHs256(jwt, sharedSecret);
+    } catch (InvalidKeyException | NoSuchAlgorithmException e) {
+      throw new JwtTokenUtilsException(e.getMessage());
+    }
+
+    String base64Signature = new String(Base64.getEncoder().encode(signature));
+
+    log.debug("Base64 signature:\n'{}'\n", base64Signature);
+
+    String sjwt = String.format("%s.%s", jwt, base64Signature);
+
+    if (verbose) {
+      PrintUtility.indentJwt(jwt, "Generated self signed token ");
+    }
+    return sjwt;
   }
 
-  /**
-   * 
-   * @return
-   * @throws NoSuchAlgorithmException
-   * @throws InvalidKeySpecException
-   * @throws IOException
-   */
-  @Cmd(param = {"idtoken", "access-token"})
+  @Override
   public String generateToken() {
     String ssjwt = generateSelfSignedJwt();
     return gcpToken(ssjwt);

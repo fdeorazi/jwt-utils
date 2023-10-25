@@ -1,5 +1,23 @@
+/*
+ * Copyright 2023 Fabio De Orazi
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package com.dof.java.jwt;
 
+import com.dof.java.jwt.annotation.Cmd;
+import com.dof.java.jwt.enums.JwtProps;
+import com.dof.java.jwt.enums.TargetTokenType;
+import com.dof.java.jwt.exception.JwtTokenUtilsException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -11,8 +29,7 @@ import java.util.logging.LogManager;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.databind.util.ArrayIterator;
-import com.nimbusds.jwt.JWTParser;
+
 
 /**
  * Entry point class to use library from command line.
@@ -24,16 +41,16 @@ import com.nimbusds.jwt.JWTParser;
 public class JwtTokenUtilsConsole {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsole.class);
 
-  private static String[] cmd_args;
+  private String[] cmdArgs;
 
   public static final int SCREEN_WIDTH = 100;
 
   private JwtTokenUtilsBuilder builder;
-  
+
   public JwtTokenUtilsConsole(JwtTokenUtilsBuilder builder) {
     this.builder = builder;
   }
-  
+
   /**
    * Program available parameters.
    *
@@ -92,19 +109,18 @@ public class JwtTokenUtilsConsole {
             .of(m.getAnnotation(Cmd.class).param()).anyMatch(p -> p.equalsIgnoreCase(operation)))
         .findFirst();
   }
-  
+
 
   protected void evalMethod(String... args)
       throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-
-    cmd_args = args;
+    cmdArgs = args;
 
     if (checkForParam(Parameters.HELP)) {
       PrintUtility.printHelp();
       return;
     }
-    
-    Iterator<String> iter = new ArrayIterator<>(args);
+
+    Iterator<String> iter = Arrays.stream(args).iterator();
     String operation = "";
     while (iter.hasNext()) {
       String param = iter.next();
@@ -163,6 +179,11 @@ public class JwtTokenUtilsConsole {
       }
     }
 
+    evalExecution(operation);
+  }
+
+  private void evalExecution(String operation)
+      throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     Optional<Method> optional = findMethod(operation);
 
     if (optional.isPresent()) {
@@ -174,18 +195,18 @@ public class JwtTokenUtilsConsole {
       Object result = optional.get().invoke(jwtTokenUtil);
 
       if (checkForParam(Parameters.VERBOSE)) {
-        log.info(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Token",
+        log.info(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Result token",
             JwtProps.CMD_COLOR0.val()));
       }
       System.out.println(result);
     } else {
-      throw new RuntimeException("Miss command.");
+      throw new JwtTokenUtilsException("Miss command.");
     }
   }
 
   private static void loggingConf() {
     try (InputStream in =
-        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("logging.properties")) {
+        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("console-logging.properties")) {
       LogManager.getLogManager().readConfiguration(in);
     } catch (IOException e) {
       System.err.printf(e.getMessage());
@@ -193,8 +214,8 @@ public class JwtTokenUtilsConsole {
     }
   }
 
-  private static boolean checkForParam(Parameters toFind) {
-    return Stream.of(cmd_args).anyMatch(
+  private boolean checkForParam(Parameters toFind) {
+    return Stream.of(cmdArgs).anyMatch(
         p -> (p.equalsIgnoreCase(toFind.shortParam) || p.equalsIgnoreCase(toFind.verboseParam)));
   }
 
@@ -220,8 +241,8 @@ public class JwtTokenUtilsConsole {
       } else {
         errorMessage = e.getMessage();
       }
-      log.error("{}{}{}", JwtProps.CMD_COLOR4.val(), "ERROR", JwtProps.CMD_COLOR0.val());
-      log.error(errorMessage, e);
+      log.error("{}{}", JwtProps.CMD_COLOR4.val(), "ERROR");
+      log.error("{}{}{}", JwtProps.CMD_COLOR7.val(), errorMessage, JwtProps.CMD_COLOR0.val(), e);
     }
   }
 

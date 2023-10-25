@@ -5,9 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import java.lang.reflect.InvocationTargetException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -18,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.dof.java.jwt.JwtTokenUtilsConsole.Parameters;
 
 @ExtendWith(MockitoExtension.class)
-class JwtTokenUtilsConsoleUnitTest {
+class JwtTokenUtilsConsoleUnitTest implements JwtTokenUtilsTest {
   Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsoleUnitTest.class);
 
   @Mock

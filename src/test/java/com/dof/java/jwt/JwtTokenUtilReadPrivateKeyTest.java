@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.URL;
 import org.junit.jupiter.api.Test;
 
-class JwtTokenUtilReadPrivateKeyTest {
+class JwtTokenUtilReadPrivateKeyTest implements JwtTokenUtilsTest {
 
   @Test
   void givenFileName_whenRead_returnBase64Key() throws IOException {

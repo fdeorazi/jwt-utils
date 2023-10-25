@@ -1,9 +1,11 @@
-package com.dof.java.jwt;
+package com.dof.java.jwt.enums;
 
 import java.io.IOException;
 import java.io.InputStream;
+import com.dof.java.jwt.exception.JwtTokenUtilsException;
 
 /**
+ * Useful enumeration to map application property.
  *
  * @author fabio.deorazi
  *
@@ -20,6 +22,7 @@ public enum JwtProps {
   CMD_COLOR4("cmd.color4"),
   CMD_COLOR5("cmd.color5"),
   CMD_COLOR6("cmd.color6"),
+  CMD_COLOR7("cmd.color7"),
   CMD_BGCOLOR1("cmd.bgcolor1"),
   CMD_HS256("cmd.hs256"),
   CMD_HS256_VERIFY("cmd.hs256verify"),
@@ -27,6 +30,7 @@ public enum JwtProps {
   CMD_ID_TOKEN("cmd.idtoken"),
   CMD_ACCESS_TOKEN("cmd.access.token"),
   CMD_TITLE("cmd.title"),
+  CMD_INTRO("cmd.intro"),
   CMD_LABEL1("cmd.label1"),
   CMD_LABEL2("cmd.label2"),
   CMD_LABEL3("cmd.label3"),
@@ -41,6 +45,7 @@ public enum JwtProps {
   CMD_FLAGS_VERBOSE("cmd.flags.verbose"),
   CMD_FLAGS_SCOPE("cmd.flags.scope"),
   CMD_FLAGS_HELP("cmd.flags.help"),
+  CMD_FLAGS_PUBLIC_KEY("cmd.flags.public.key"),
   CMD_SSJWT_VERIFY("cmd.ssjwt.verify"),
   CMD_EXAMPLE1_DESC("cmd.example1.desc"),
   CMD_EXAMPLE1("cmd.example1"),
@@ -59,15 +64,14 @@ public enum JwtProps {
       props = new java.util.Properties();
       props.load(in);
     } catch (IOException e) {
-      e.printStackTrace();
-      throw new RuntimeException("Properies file not found.");
+      throw new JwtTokenUtilsException("Properies file not found.");
     }
   }
 
   /**
+   * Given a property key, return the correspondent property value.
    *
-   * @param prop
-   * @return
+   * @return The property value.
    */
   public String val() {
     if (props == null) {

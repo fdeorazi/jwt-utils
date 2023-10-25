@@ -1,16 +1,13 @@
 package com.dof.java.jwt;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.dof.java.jwt.enums.TargetTokenType;
 
 /**
- * Builder class for JwtTokenUtils.
- * 
+ * Default implementation of {@link JwtTokenUtilsBuilder}.
  *
  * @author fabio.deorazi
  *
  */
-@Getter
 public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
 
   String projectId;
@@ -84,17 +81,52 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
     return this;
   }
 
-//  private JwtTokenUtilsContract jwtTokenUtilsContract;
-//  private boolean injected;
-//
-//  public void setJwtTokenUtils(JwtTokenUtilsContract inject) {
-//    this.jwtTokenUtilsContract = inject;
-//  }
+  public String getBase64privateKey() {
+    return base64privateKey;
+  }
+  
+  public String getProjectId() {
+    return projectId;
+  }
 
+  public String getServiceAccount() {
+    return serviceAccount;
+  }
+
+  public String getSharedSecret() {
+    return sharedSecret;
+  }
+
+  public String getScope() {
+    return scope;
+  }
+
+  public String getSignedJwt() {
+    return signedJwt;
+  }
+
+  public String getKeyFile() {
+    return keyFile;
+  }
+
+  public String getTargetServiceUrl() {
+    return targetServiceUrl;
+  }
+
+  public TargetTokenType getTargetTokenType() {
+    return targetTokenType;
+  }
+
+  public String getPublicKeyFile() {
+    return publicKeyFile;
+  }
+
+  public boolean isVerbose() {
+    return verbose;
+  }
+
+  @Override
   public JwtTokenUtils build() {
-//    if (this.jwtTokenUtilsContract == null || !injected) {
-//      this.jwtTokenUtilsContract = new JwtTokenUtilsDefault(this);
-//    }
     return new JwtTokenUtilsDefault(this);
   }
 

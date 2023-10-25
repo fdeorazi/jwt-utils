@@ -1,16 +1,12 @@
 package com.dof.java.jwt;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.URL;
-import java.util.logging.LogManager;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,26 +14,17 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.dof.java.jwt.JwtTokenUtilsConsole.Parameters;
+import com.dof.java.jwt.enums.TargetTokenType;
 
 /**
  * Test the entry point class when use from console.
  * 
  */
-class JwtTokenUtilsConsoleTest {
+class JwtTokenUtilsConsoleTest implements JwtTokenUtilsTest {
   Logger log = LoggerFactory.getLogger(JwtTokenUtilsConsoleTest.class);
 
   ByteArrayOutputStream outCaptor = new ByteArrayOutputStream();
   ByteArrayOutputStream errCaptor = new ByteArrayOutputStream();
-
-  private static void loggingConf() {
-    try (InputStream in =
-        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("logging.properties")) {
-      LogManager.getLogManager().readConfiguration(in);
-    } catch (IOException e) {
-      System.err.printf(e.getMessage());
-      System.exit(1);
-    }
-  }
 
   @BeforeEach
   void setup() {
@@ -86,7 +73,8 @@ class JwtTokenUtilsConsoleTest {
     JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.SERVICE_ACCOUNT.shortParam,
         TestConstants.SERVICE_ACCOUNT, Parameters.TARGET_SERVICE.shortParam,
         TestConstants.TARGET_SERVICE, Parameters.KEY_FILE.shortParam, TestConstants.KEY_FILE,
-        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val, Parameters.VERBOSE.verboseParam);
+        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val(),
+        Parameters.VERBOSE.verboseParam);
 
     log.info(outCaptor.toString());
     Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
@@ -102,7 +90,8 @@ class JwtTokenUtilsConsoleTest {
     JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.SERVICE_ACCOUNT.shortParam,
         TestConstants.SERVICE_ACCOUNT, Parameters.TARGET_SERVICE.shortParam,
         TestConstants.TARGET_SERVICE, Parameters.BASE64_KEY.shortParam, base64Key,
-        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val, Parameters.VERBOSE.verboseParam);
+        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val(),
+        Parameters.VERBOSE.verboseParam);
 
     log.info(outCaptor.toString());
     Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
@@ -112,7 +101,8 @@ class JwtTokenUtilsConsoleTest {
     JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.SERVICE_ACCOUNT.shortParam,
         TestConstants.SERVICE_ACCOUNT, Parameters.TARGET_SERVICE.shortParam,
         TestConstants.TARGET_SERVICE, Parameters.KEY_FILE.shortParam, TestConstants.KEY_FILE,
-        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val, Parameters.VERBOSE.verboseParam);
+        Parameters.TYPE.shortParam, TargetTokenType.ID_TOKEN.val(),
+        Parameters.VERBOSE.verboseParam);
 
     Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
     String ssJwt = outCaptor.toString();
