@@ -83,6 +83,11 @@ curl -X POST https://pubsub.googleapis.com/v1/projects/project-id/topics/topic-i
   -H 'Authorization: Bearer: <access-token>'
   -H 'Content-Type: application/json'
 ```
+## Author
+
+**Fabio De Orazi**
+
+* https://www.linkedin.com/in/fabio-de-orazi-a2863596
 ## Copyright and license
 
 The code is released under the [Apache license](LICENSE?raw=true).
