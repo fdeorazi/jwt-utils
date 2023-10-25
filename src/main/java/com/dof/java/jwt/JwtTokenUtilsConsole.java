@@ -206,7 +206,7 @@ public class JwtTokenUtilsConsole {
 
   private static void loggingConf() {
     try (InputStream in =
-        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("logging.properties")) {
+        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("console-logging.properties")) {
       LogManager.getLogManager().readConfiguration(in);
     } catch (IOException e) {
       System.err.printf(e.getMessage());
@@ -241,8 +241,8 @@ public class JwtTokenUtilsConsole {
       } else {
         errorMessage = e.getMessage();
       }
-      log.error("{}{}{}", JwtProps.CMD_COLOR4.val(), "ERROR", JwtProps.CMD_COLOR0.val());
-      log.error(errorMessage, e);
+      log.error("{}{}", JwtProps.CMD_COLOR4.val(), "ERROR");
+      log.error("{}{}{}", JwtProps.CMD_COLOR7.val(), errorMessage, JwtProps.CMD_COLOR0.val(), e);
     }
   }
 

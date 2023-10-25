@@ -46,20 +46,20 @@ public class PrintUtility {
   private PrintUtility() {}
 
   /**
-   * Print the Base64 JWT (not opaque) in 'Pretty Format' style.
+   * Print the Base64 JWT (not opaque) formatted.
    *
    * @param encodedJwt self signed JWT.
    */
-  public static synchronized void prettyPrintJwt(String encodedJwt, String label) {
+  public static synchronized void indentJwt(String encodedJwt, String label) {
     log.info("{}{}{}{}", JwtProps.CMD_COLOR1.val(), label, "(decoded):", JwtProps.CMD_COLOR0.val());
     String[] jwtSplitted = encodedJwt.split("\\.");
     String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
     String jwtClaims = new String(Base64.getDecoder().decode(jwtSplitted[1]));
-    prettyPrint(jwtHeaders, "Headers:");
-    prettyPrint(jwtClaims, "Claims:");
+    indentJson(jwtHeaders, "Headers");
+    indentJson(jwtClaims, "Claims");
   }
 
-  private static void prettyPrint(String json, String label) {
+  private static void indentJson(String json, String label) {
     log.info("{}{}{}", JwtProps.CMD_COLOR5.val(), label, JwtProps.CMD_COLOR0.val());
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
     JsonElement jsonElement = JsonParser.parseString(json);

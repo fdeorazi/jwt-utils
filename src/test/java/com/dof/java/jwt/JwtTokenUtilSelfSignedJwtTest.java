@@ -20,7 +20,7 @@ import com.jayway.jsonpath.matchers.JsonPathMatchers;
  * @author fabio.deorazi
  *
  */
-class JwtTokenUtilRs256Test implements JwtTokenUtilsTest {
+class JwtTokenUtilSelfSignedJwtTest implements JwtTokenUtilsTest {
 
   @Test
   void givenNoParamers_whenSsJwtForIdToken_thenThrowException() {
@@ -33,6 +33,15 @@ class JwtTokenUtilRs256Test implements JwtTokenUtilsTest {
     JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
         .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
         .setTargetTokenType(TargetTokenType.ID_TOKEN).build();
+    assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
+  }
+
+  @Test
+  void givenNoTargetTokenType_whenSsJwtForIdToken_thenThrowException() {
+    JwtTokenUtils jwtTokenUtils =
+        JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
+            .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
+            .build();
     assertThrows(IllegalArgumentException.class, () -> jwtTokenUtils.generateSelfSignedJwt());
   }
 
@@ -88,8 +97,8 @@ class JwtTokenUtilRs256Test implements JwtTokenUtilsTest {
   }
 
   @Test
-  void givenSignedJwt_whenVerify_theReturnVerified() throws NoSuchAlgorithmException,
-      InvalidKeySpecException, IOException {
+  void givenSignedJwt_whenVerify_theReturnVerified()
+      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     String ssjwt = JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
         .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE_2048)
         .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).setVerbose(true).build()
@@ -103,8 +112,8 @@ class JwtTokenUtilRs256Test implements JwtTokenUtilsTest {
   }
 
   @Test
-  void givenInvalidSignedJwt_whenVerify_theThrowException() throws NoSuchAlgorithmException,
-      InvalidKeySpecException, IOException {
+  void givenInvalidSignedJwt_whenVerify_theThrowException()
+      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
     String ssjwt = JwtTokenUtilsInit.builder().setServiceAccount(TestConstants.SERVICE_ACCOUNT)
         .setTargetServiceUrl(TestConstants.TARGET_SERVICE).setKeyFile(TestConstants.KEY_FILE)
         .setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build().generateSelfSignedJwt();

@@ -22,6 +22,7 @@ public enum JwtProps {
   CMD_COLOR4("cmd.color4"),
   CMD_COLOR5("cmd.color5"),
   CMD_COLOR6("cmd.color6"),
+  CMD_COLOR7("cmd.color7"),
   CMD_BGCOLOR1("cmd.bgcolor1"),
   CMD_HS256("cmd.hs256"),
   CMD_HS256_VERIFY("cmd.hs256verify"),

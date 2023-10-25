@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -188,10 +189,10 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   @Override
   public String generateSelfSignedJwt() {
     Assert.present(serviceAccount, "Service account cannot be null.");
+    Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
       Assert.present(targetServiceUrl, "Target service url cannot be null.");
     }
-    Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
 
     try {
 
@@ -244,13 +245,13 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       byte[] signature = CryptoFunctions.signRsa256(jwt, privateKey);
 
       String base64Signature = new String(Base64.getEncoder().encode(signature));
-      
-      log.debug("Base64 signature:\n'{}'\n",base64Signature);
-      
+
+      log.debug("Base64 signature:\n'{}'\n", base64Signature);
+
       String sjwt = String.format("%s.%s", jwt, base64Signature);
 
       if (verbose) {
-        PrintUtility.prettyPrintJwt(sjwt, "Generated self signed token ");
+        PrintUtility.indentJwt(sjwt, "Generated self signed token ");
       }
       return sjwt;
 
@@ -265,59 +266,61 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     try {
 
       URL url = new URL(JwtProps.GCP_TOKEN_URL.val());
+      String grantType = JwtProps.GCP_TOKEN_REQ_PAYLOAD.val();
+      String payload = "grant_type=".concat(URLEncoder.encode(grantType, StandardCharsets.UTF_8))
+          .concat("&assertion=").concat(URLEncoder.encode(signedJwt, StandardCharsets.UTF_8));
+
+
+      byte[] postData = payload.getBytes(StandardCharsets.UTF_8);
+
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
       conn.setRequestMethod("POST");
-      conn.setRequestProperty("Accept", "*/*");
       conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-      conn.setDoOutput(true);
+      conn.setRequestProperty("charset", "utf-8");
+      conn.setRequestProperty("Content-Length", Integer.toString(postData.length));
 
-      String payload = JwtProps.GCP_TOKEN_REQ_PAYLOAD.val() + signedJwt;
-      conn.setRequestProperty("Content-Length", String.valueOf(payload.length()));
-      byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
+      conn.setDoOutput(true);
+      conn.setInstanceFollowRedirects(false);
+      conn.setUseCaches(false);
+
 
       if (verbose) {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%n%s%s%n", JwtProps.CMD_COLOR1.val(), "Invoke token endpoint"));
+        sb.append(String.format("%n%s%s%n", JwtProps.CMD_COLOR1.val(), "Invoke token request endpoint"));
         sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR5.val(), "Url"));
         sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR3.val(), url));
-        sb.append(String.format("%s%-10s%s", JwtProps.CMD_COLOR5.val(), "Payload",
+        sb.append(String.format("%s%-10s%s%n", JwtProps.CMD_COLOR5.val(), "Payload",
             JwtProps.CMD_COLOR0.val()));
         sb.append(JwtProps.CMD_COLOR3.val());
-        PrintUtility.format(sb, payload, 0, JwtTokenUtilsConsole.SCREEN_WIDTH);
+        // PrintUtility.format(sb, payload, 0, JwtTokenUtilsConsole.SCREEN_WIDTH);
+        sb.append(payload.concat("\n"));
         log.info("{}", sb);
         sb.append(JwtProps.CMD_COLOR0.val());
       }
 
       try (OutputStream os = conn.getOutputStream()) {
-        os.write(bytes, 0, bytes.length);
+        os.write(postData, 0, postData.length);
       }
 
       if (conn.getResponseCode() != 200) {
-        String message = String.format("%s return error with%nstatus %s%nmessage %s",
-            JwtProps.GCP_TOKEN_URL.val(), conn.getResponseCode(), conn.getResponseMessage());
+        String error = readFromStream(conn.getErrorStream());
+        String message = String.format(
+            "%s return error with%nstatus %s%nmessage %s%nError payload %s%n",
+            JwtProps.GCP_TOKEN_URL.val(), conn.getResponseCode(), conn.getResponseMessage(), error);
+
         throw new RequestTokenHttpException(message);
       }
 
-      try (BufferedInputStream bis = new BufferedInputStream(conn.getInputStream());
-          ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      String response = readFromStream(conn.getInputStream());
+      int start = response.indexOf(":") + 2;
+      int end = response.indexOf("\"", start);
+      idToken = end != -1 ? response.substring(start, end) : response.substring(start);
+      log.debug("Response {}", response);
 
-        byte[] buff = new byte[4096];
-        int read = 0;
-
-        while ((read = bis.read(buff)) != -1) {
-          baos.write(buff, 0, read);
-        }
-        String response = new String(baos.toByteArray());
-        int start = response.indexOf(":") + 2;
-        int end = response.indexOf("\"", start);
-        idToken = end != -1 ? response.substring(start, end) : response.substring(start);
-        log.debug("Response {}", response);
-      }
       conn.disconnect();
 
       if (this.verbose && targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-        PrintUtility.prettyPrintJwt(idToken, "Returned ID Token from GCP ");
+        PrintUtility.indentJwt(idToken, "Returned ID Token from GCP ");
       }
 
       return idToken;
@@ -325,6 +328,20 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       throw e;
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  String readFromStream(InputStream in) throws IOException {
+    try (BufferedInputStream bis = new BufferedInputStream(in);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+      byte[] buff = new byte[4096];
+      int read = 0;
+
+      while ((read = bis.read(buff)) != -1) {
+        baos.write(buff, 0, read);
+      }
+      return new String(baos.toByteArray());
     }
   }
 
@@ -338,15 +355,15 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-//      SignedJWT signedJwtObj;
-//
-//      signedJwtObj = SignedJWT.parse(signedJwt);
-//
-//      log.trace("signature: {}", signedJwtObj.getSignature());
-//      JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
-//      return signedJwtObj.verify(verifier);
+      // SignedJWT signedJwtObj;
+      //
+      // signedJwtObj = SignedJWT.parse(signedJwt);
+      //
+      // log.trace("signature: {}", signedJwtObj.getSignature());
+      // JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
+      // return signedJwtObj.verify(verifier);
       return CryptoFunctions.verifyJwtSignature(signedJwt, sharedSecret);
-      
+
     } catch (InvalidKeyException | NoSuchAlgorithmException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
@@ -362,7 +379,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-      //SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
+      // SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
 
       String base64PublicKey = readPublicKey(publicKeyFile);
 
@@ -412,24 +429,24 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     String base64Header = new String(Base64.getEncoder().encode(jsonHeader.getBytes()));
     String jsonClaims = gson.toJson(claims);
     String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
-    
+
     String jwt = String.format("%s.%s", base64Header, base64Claims);
-    
+
     byte[] signature;
     try {
       signature = CryptoFunctions.signHs256(jwt, sharedSecret);
     } catch (InvalidKeyException | NoSuchAlgorithmException e) {
       throw new JwtTokenUtilsException(e.getMessage());
     }
-    
+
     String base64Signature = new String(Base64.getEncoder().encode(signature));
-    
-    log.debug("Base64 signature:\n'{}'\n",base64Signature);
-    
+
+    log.debug("Base64 signature:\n'{}'\n", base64Signature);
+
     String sjwt = String.format("%s.%s", jwt, base64Signature);
 
     if (verbose) {
-      PrintUtility.prettyPrintJwt(jwt, "Generated self signed token ");
+      PrintUtility.indentJwt(jwt, "Generated self signed token ");
     }
     return sjwt;
   }
