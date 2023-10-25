@@ -1,6 +1,11 @@
 # Jwt Utils Project
 ## Overview
-Json Web Token Utilities written to create self signed JWT aim to request Identity or Access Tokens to a cloud provider. I've initially written this tool for personal usage in my Google Cloud projects and to better understand JWT, digital signatures in Java and service authentication on cloud.
+Json Web Token Utilities written to create and verify self signed JWT, in HS256 and RS256 signature algorithms types.
+The RS256 version can be used to request short-lived credentials to Google Cloud REST API, for impersonating an IAM service account. Based on created JWT type, you can obatain an ID Token (OpenID Connect conform), or an Access Tokens.
+The first type (ID Token) is used, for example, in Cloud Run and Cloud Functions authentication.
+https://cloud.google.com/iam/docs/create-short-lived-credentials-direct
+
+I've initially written this tool for personal usage in my Google Cloud projects and to better understand JWT, digital signatures in Java and service authentication on cloud.
 
 It allows follow functionalities:
 
