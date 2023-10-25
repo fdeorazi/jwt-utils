@@ -30,6 +30,7 @@ public enum JwtProps {
   CMD_ID_TOKEN("cmd.idtoken"),
   CMD_ACCESS_TOKEN("cmd.access.token"),
   CMD_TITLE("cmd.title"),
+  CMD_INTRO("cmd.intro"),
   CMD_LABEL1("cmd.label1"),
   CMD_LABEL2("cmd.label2"),
   CMD_LABEL3("cmd.label3"),

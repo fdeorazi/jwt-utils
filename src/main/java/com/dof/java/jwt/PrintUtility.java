@@ -119,7 +119,7 @@ public class PrintUtility {
     StringBuilder sb = new StringBuilder();
 
     logo(sb);
-
+    
     sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL1.val(),
         JwtProps.CMD_COLOR0.val()));
 

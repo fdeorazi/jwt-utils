@@ -84,11 +84,7 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
   public String getBase64privateKey() {
     return base64privateKey;
   }
-
-  public void setBase64privateKey(String base64privateKey) {
-    this.base64privateKey = base64privateKey;
-  }
-
+  
   public String getProjectId() {
     return projectId;
   }
