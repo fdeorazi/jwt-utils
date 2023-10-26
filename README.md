@@ -1,19 +1,16 @@
 # Jwt Utils Project
 ## Overview
-Json Web Token Utilities written to create and verify self signed JWT, in HS256 and RS256 signature algorithms types.
-The RS256 version can be used to request short-lived credentials to Google Cloud REST API, for impersonating an IAM service account. Based on created JWT type, you can obatain an ID Token (OpenID Connect conform), or an Access Tokens.
-The first type (ID Token) is used, for example, in Cloud Run and Cloud Functions authentication.
+An utility to create and verify self signed Json Web Tokens and also request short-lived credentials to Google Cloud REST API.
+
 https://cloud.google.com/iam/docs/create-short-lived-credentials-direct
 
-I've initially written this tool for personal usage in my Google Cloud projects and to better understand JWT, digital signatures in Java and service authentication on cloud.
+I've initially developer this tool for personal usage in my Google Cloud projects and to better understand JWT, Java Cryptography Architecture (JCA) and service authentication on Google Cloud. 
 
 It allows follow functionalities:
 
-* Create a self signed HS256 or RS256 Json Web Token
-* Create a self signed JWT
-* Verify signature for HS256 or RS256 signed JWT
-* Request an Identity Token (OpenID compliant) to Cloud enpoint through selft signed JWT
-* Request an opaque Oauth2 Access Token to Cloud enpoint through self signed JWT
+* Create and verify a self signed HS256 or RS256 Json Web Token
+* Obtain an Identity Token (OpenID Connect compliant) via Cloud enpoint with selft signed JWT
+* Obtain an Oauth2 Access Token via Cloud enpoint through self signed JWT
 
 
 
