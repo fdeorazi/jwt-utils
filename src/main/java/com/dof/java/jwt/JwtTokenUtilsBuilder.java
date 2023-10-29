@@ -36,7 +36,7 @@ public interface JwtTokenUtilsBuilder {
    *        PEM private key content
    * @return the builder for method chaining
    */
-  JwtTokenUtilsBuilder setBase64PrivateKey(String base64PrivateKey);
+  JwtTokenUtilsBuilder setBase64privateKey(String base64PrivateKey);
   
   /**
    * Set the secret used to sign or verify the HS256 JWT Token.
@@ -111,6 +111,46 @@ public interface JwtTokenUtilsBuilder {
   JwtTokenUtilsBuilder setScope(String scope);
 
   /**
+   * Set the issuer claim 'iss' on a Signed JWT.
+   *
+   * @param issuer Issuer claim value
+   * @return the builder for method chaining
+   */
+  JwtTokenUtilsBuilder setIssuer(String issuer);
+  
+  /**
+   * Set the issuer claim 'sub' on a Signed JWT.
+   *
+   * @param subject Subject claim value
+   * @return the builder for method chaining
+   */
+  JwtTokenUtilsBuilder setSubject(String subject);
+  
+  /**
+   * Set the issuer claim 'aud' on a Signed JWT.
+   *
+   * @param audience Target Audience claim value
+   * @return the builder for method chaining
+   */
+  JwtTokenUtilsBuilder setAudience(String audience);
+  
+  /**
+   * Set the issuer claim 'iss' on a Signed JWT.
+   *
+   * @param targetAudience Target Audience claim value
+   * @return the builder for method chaining
+   */
+  JwtTokenUtilsBuilder setTargetAudience(String targetAudience);
+  
+  /**
+   * Sum the given second to current time stamp and set it to 'exp' claim in JWT
+   * 
+   * @param seconds
+   * @return
+   */
+  JwtTokenUtilsBuilder setExpireIn(Integer seconds);
+  
+  /**
    * Pass setted parameter to a new {@link JwtTokenUtils} on which can be invoked
    * utility JWT and token methods.
    *
@@ -145,13 +185,6 @@ public interface JwtTokenUtilsBuilder {
    * @return The secret used in signature.
    */
   String getSharedSecret();
-  
-  /**
-   * Get the scope set in builder on {@link #setScope(String)}.
-   *
-   * @return The scope
-   */
-  String getScope();
 
   /**
    * Get the signed JWT set in builder on {@link #setSignedJwt(String)}.
@@ -189,11 +222,53 @@ public interface JwtTokenUtilsBuilder {
   TargetTokenType getTargetTokenType();
 
   /**
+   * Get the issuer set in builder on {@link #setIssuer(String)}.
+   *
+   * @return The issuer
+   */
+  public String getIssuer();
+
+  /**
+   * Get the subject set in builder on {@link #setSubject(String)}.
+   *
+   * @return The subject
+   */
+  public String getSubject();
+
+  /**
+   * Get the audience set in builder on {@link #setAudience(String)}.
+   *
+   * @return The audience
+   */
+  String getAudience();
+  
+  /**
+   * Get the scope set in builder on {@link #setScope(String)}.
+   *
+   * @return The scope
+   */
+  String getScope();
+  
+  /**
+   * Get the target audience set in builder on {@link #setTargetAudience(String)}.
+   *
+   * @return The target audience
+   */
+  String getTargetAdience();
+  
+  /**
+   * Get the expireIn set in builder in {@link #setExpireIn(Integer)}
+   * 
+   * @return
+   */
+  Integer getExpireIn();
+  /**
    * Get if builder was set as verbose {@link #setVerbose(boolean)}.
    *
    * @return If builder was set as verbose.
    */
   boolean isVerbose();
 
+ 
 
 }

@@ -44,12 +44,19 @@ public enum JwtProps {
   CMD_FLAGS_TARGET_SERVICE("cmd.flags.target.service"),
   CMD_FLAGS_VERBOSE("cmd.flags.verbose"),
   CMD_FLAGS_SCOPE("cmd.flags.scope"),
+  CMD_FLAGS_ISS("cmd.flags.iss"),
+  CMD_FLAGS_SUB("cmd.flags.sub"),
+  CMD_FLAGS_AUD("cmd.flags.aud"),
+  CMD_FLAGS_TARGET_AUDIENCE("cmd.flags.target.audience"),
+  CMD_FLAGS_EXP("cmd.flags.exp"),
   CMD_FLAGS_HELP("cmd.flags.help"),
   CMD_FLAGS_PUBLIC_KEY("cmd.flags.public.key"),
   CMD_SSJWT_VERIFY("cmd.ssjwt.verify"),
   CMD_EXAMPLE1_DESC("cmd.example1.desc"),
   CMD_EXAMPLE1("cmd.example1"),
-  CMD_MENU_WIDTH("cmd.menu.width");
+  CMD_MENU_WIDTH("cmd.menu.width"),
+  SSJWT_MISS_SUB("ssjwt.miss.sub"),
+  SSJWT_MISS_TARGET_AUDIENCE("ssjwt.miss.target.audience");
 
   String key;
 

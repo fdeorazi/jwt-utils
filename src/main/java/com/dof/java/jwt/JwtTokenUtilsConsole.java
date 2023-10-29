@@ -58,34 +58,39 @@ public class JwtTokenUtilsConsole {
    *
    */
   public enum Parameters {
-    HS256("hs256", "hs256", 1, new int[] {7}),
-    HS256_VERIFY("hs256-verify", "hs256-verify", 2, new int[] {7, 12}),
-    SSJWT("ssjwt", "ssjwt", 3, new int[] {6, 9, 10, 13, 11}),
-    ID_TOKEN("idtoken", "idtoken", 4, new int[] {9, 10, 13, 11}),
-    ACCESS_TOKEN("access-token", "access-token", 5, new int[] {9, 10, 13, 11}),
-    TYPE("-t", "--type", 6, new int[] {}),
-    SECRET("-s", "--secret", 7, new int[] {}),
-    PROJECT_ID("-p", "--project-id", 8, new int[] {}),
-    BASE64_KEY("-k", "--key", 9, new int[] {}),
-    KEY_FILE("-kf", "--key-file", 10, new int[] {}),
-    SERVICE_ACCOUNT("-sa", "--service-account", 11, new int[] {}),
-    SIGNED_JWT("-j", "--signed-jwt", 12, new int[] {}),
-    TARGET_SERVICE("-ts", "--target-service", 13, new int[] {}),
-    VERBOSE("-v", "--verbose", 14, new int[] {}),
-    HELP("-h", "--help", 15, new int[] {}),
-    PUBLIC_KEY("-pk", "--public-key", 16, new int[] {}),
-    SSJWT_VERIFY("ssjwt-verify", "ssjwt-verify", 17, new int[] {16, 12}),
-    SCOPE("-sc", "--scope", 18, new int[] {});
+    HS256("hs256", "hs256", new String[] {"-s"}),
+    HS256_VERIFY("hs256-verify", "hs256-verify", new String[] {"-s", "-j"}),
+    SSJWT("ssjwt", "ssjwt", new String[] {"-t", "-kf", "-iss"}),
+    SSJWT_VERIFY("ssjwt-verify", "ssjwt-verify", new String[] {"-pk", "-j"}),
+    ID_TOKEN("idtoken", "idtoken", new String[] {"-kf", "-ta", "-sub", "-iss"}),
+    ACCESS_TOKEN("access-token", "access-token",
+        new String[] {"-kf", "-ta", "-scope", "-iss"}),
+    TYPE("-t", "--type", new String[] {}),
+    SECRET("-s", "--secret", new String[] {}),
+    PROJECT_ID("-p", "--project-id", new String[] {}),
+    BASE64_KEY("-k", "--key", new String[] {}),
+    KEY_FILE("-kf", "--key-file", new String[] {}),
+    SERVICE_ACCOUNT("-sa", "--service-account", new String[] {}),
+    SIGNED_JWT("-j", "--signed-jwt", new String[] {}),
+    TARGET_SERVICE("-ts", "--target-service", new String[] {}),
+    VERBOSE("-v", "--verbose", new String[] {}),
+    HELP("-h", "--help", new String[] {}),
+    PUBLIC_KEY("-pk", "--public-key", new String[] {}),
+    ISS("-iss", "--issuer", new String[] {}),
+    SUB("-sub", "--subject", new String[] {}),
+    SCOPE("-scope", "--scope", new String[] {}),
+    AUD("-aud", "--audience", new String[] {}),
+    EXP("-exp", "--expire-in", new String[] {}),
+    // IAT("-iat", "--issued-at", new String[] {}),
+    TARGET_AUDIENCE("-ta", "--target-audience", new String[] {});
 
     String shortParam;
     String verboseParam;
-    int id;
-    int[] params;
+    String[] params;
 
-    Parameters(String shortParam, String verboseParam, int id, int[] params) {
+    Parameters(String shortParam, String verboseParam, String[] params) {
       this.shortParam = shortParam;
       this.verboseParam = verboseParam;
-      this.id = id;
       this.params = params;
     }
 
@@ -93,8 +98,8 @@ public class JwtTokenUtilsConsole {
       return this.shortParam.equals(value) || this.verboseParam.equals(value);
     }
 
-    public static Optional<Parameters> get(int id) {
-      return Stream.of(Parameters.values()).filter(p -> p.id == id).findAny();
+    public static Optional<Parameters> get(String id) {
+      return Stream.of(Parameters.values()).filter(p -> p.shortParam.contentEquals(id)).findAny();
     }
   }
 
@@ -142,13 +147,9 @@ public class JwtTokenUtilsConsole {
         Assert.hasNext(iter);
         builder.setSharedSecret(iter.next());
 
-      } else if (Parameters.PROJECT_ID.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setProjectId(iter.next());
-
       } else if (Parameters.BASE64_KEY.isEqual(param)) {
         Assert.hasNext(iter);
-        builder.setBase64PrivateKey(iter.next());
+        builder.setBase64privateKey(iter.next());
 
       } else if (Parameters.KEY_FILE.isEqual(param)) {
         Assert.hasNext(iter);
@@ -162,10 +163,6 @@ public class JwtTokenUtilsConsole {
         Assert.hasNext(iter);
         builder.setSignedJwt(iter.next());
 
-      } else if (Parameters.TARGET_SERVICE.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setTargetServiceUrl(iter.next());
-
       } else if (Parameters.SCOPE.isEqual(param)) {
         Assert.hasNext(iter);
         builder.setScope(iter.next());
@@ -174,9 +171,30 @@ public class JwtTokenUtilsConsole {
         Assert.hasNext(iter);
         builder.setPublicKeyFile(iter.next());
 
+      } else if (Parameters.ISS.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setIssuer(iter.next());
+
+      } else if (Parameters.SUB.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setSubject(iter.next());
+
+      } else if (Parameters.AUD.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setAudience(iter.next());
+
+      } else if (Parameters.TARGET_AUDIENCE.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setTargetAudience(iter.next());
+
+      } else if (Parameters.TARGET_SERVICE.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setTargetServiceUrl(iter.next());
+
       } else if (Parameters.VERBOSE.isEqual(param)) {
         builder.setVerbose(true);
       }
+
     }
 
     evalExecution(operation);
@@ -205,8 +223,8 @@ public class JwtTokenUtilsConsole {
   }
 
   private static void loggingConf() {
-    try (InputStream in =
-        JwtTokenUtilsDefault.class.getClassLoader().getResourceAsStream("console-logging.properties")) {
+    try (InputStream in = JwtTokenUtilsDefault.class.getClassLoader()
+        .getResourceAsStream("console-logging.properties")) {
       LogManager.getLogManager().readConfiguration(in);
     } catch (IOException e) {
       System.err.printf(e.getMessage());

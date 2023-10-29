@@ -8,10 +8,13 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import java.util.Map;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 import com.dof.java.jwt.enums.TargetTokenType;
 import com.dof.java.jwt.exception.RequestTokenHttpException;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.jayway.jsonpath.matchers.JsonPathMatchers;
 
 /**
@@ -77,6 +80,43 @@ class JwtTokenUtilSelfSignedJwtTest implements JwtTokenUtilsTest {
 
     MatcherAssert.assertThat(headers, JsonPathMatchers.isJson());
     MatcherAssert.assertThat(claims, JsonPathMatchers.isJson());
+  }
+
+  @Test
+  void givenAllJwtClaimsParam_whenSsJwtForIdToken_thenReturnCorrectJwt() {
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
+        .setIssuer(TestConstants.SERVICE_ACCOUNT).setTargetAudience(TestConstants.TARGET_SERVICE)
+        .setKeyFile(TestConstants.KEY_FILE).setTargetTokenType(TargetTokenType.ID_TOKEN).build();
+    String jwt = assertDoesNotThrow(() -> jwtTokenUtils.generateSelfSignedJwt());
+    assertThat(jwt).isNotBlank();
+    String[] splittedJwt = jwt.split("\\.");
+    assertThat(splittedJwt).hasSize(3);
+    String headers = new String(Base64.getDecoder().decode(splittedJwt[0]));
+    String claims = new String(Base64.getDecoder().decode(splittedJwt[1]));
+
+    MatcherAssert.assertThat(headers, JsonPathMatchers.isJson());
+    MatcherAssert.assertThat(claims, JsonPathMatchers.isJson());
+  }
+
+  @Test
+  void givenAllJwtClaimsParam_whenSsJwtForAccess_thenReturnCorrectJwt() {
+    JwtTokenUtils jwtTokenUtils = JwtTokenUtilsInit.builder()
+        .setIssuer(TestConstants.SERVICE_ACCOUNT).setKeyFile(TestConstants.KEY_FILE)
+        .setScope(TestConstants.GCP_SCOPE).setTargetTokenType(TargetTokenType.ACCESS_TOKEN).build();
+    String jwt = assertDoesNotThrow(() -> jwtTokenUtils.generateSelfSignedJwt());
+    assertThat(jwt).isNotBlank();
+    String[] splittedJwt = jwt.split("\\.");
+    assertThat(splittedJwt).hasSize(3);
+    String headers = new String(Base64.getDecoder().decode(splittedJwt[0]));
+    String claims = new String(Base64.getDecoder().decode(splittedJwt[1]));
+
+    MatcherAssert.assertThat(headers, JsonPathMatchers.isJson());
+    MatcherAssert.assertThat(claims, JsonPathMatchers.isJson());
+    MatcherAssert.assertThat(claims, JsonPathMatchers.hasJsonPath("$.scope"));
+    Gson gson = new Gson();
+    Map<String, String> claimsMap = gson.fromJson(claims, Map.class);
+    String scope = claimsMap.get("scope");
+    assertThat(scope).isEqualTo(TestConstants.GCP_SCOPE);
   }
 
   @Test

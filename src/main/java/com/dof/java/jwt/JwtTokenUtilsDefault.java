@@ -60,11 +60,10 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
   private static final String RSA = "RSA";
 
-  private String projectId;
   private String serviceAccount;
   private String sharedSecret;
   private String base64privateKey;
-  private String scope;
+
   private String signedJwt;
   private String targetServiceUrl;
   private String keyFile;
@@ -72,10 +71,16 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   private String publicKeyFile;
   private boolean verbose;
 
+  private String issuer;
+  private String subject;
+  private String audience;
+  private String targetAdience;
+  private String scope;
+  private Integer expireIn;
+
   Properties props;
 
   JwtTokenUtilsDefault(JwtTokenUtilsBuilder builder) {
-    this.projectId = builder.getProjectId();
     this.serviceAccount = builder.getServiceAccount();
     this.sharedSecret = builder.getSharedSecret();
     this.signedJwt = builder.getSignedJwt();
@@ -86,6 +91,11 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     this.publicKeyFile = builder.getPublicKeyFile();
     this.verbose = builder.isVerbose();
     this.base64privateKey = builder.getBase64privateKey();
+    this.issuer = builder.getIssuer();
+    this.subject = builder.getSubject();
+    this.audience = builder.getAudience();
+    this.targetAdience = builder.getTargetAdience();
+    this.expireIn = builder.getExpireIn();
   }
 
   private String readKey(String filePath) throws IOException {
@@ -169,8 +179,9 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   }
 
   /**
+   * Reads public key from file system.
    * 
-   * @param filePath
+   * @param filePath The path of the key file.
    * @param algorithm
    * @return
    * @throws IOException
@@ -188,14 +199,21 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
   @Override
   public String generateSelfSignedJwt() {
-    Assert.present(serviceAccount, "Service account cannot be null.");
     Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
+    if (!Assert.present(issuer) && !Assert.present(serviceAccount)) {
+      throw new IllegalArgumentException("For signed JWT issuer or service account is required.");
+    }
+
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-      Assert.present(targetServiceUrl, "Target service url cannot be null.");
+      if (!Assert.present(subject) && !Assert.present(serviceAccount)) {
+        log.warn(JwtProps.SSJWT_MISS_SUB.val());
+      }
+      if (!Assert.present(targetAdience) && !Assert.present(targetServiceUrl)) {
+        throw new IllegalArgumentException(JwtProps.SSJWT_MISS_TARGET_AUDIENCE.val());
+      }
     }
 
     try {
-
       if (keyFile != null) {
         base64privateKey = readPrivateKey(keyFile);
       }
@@ -210,19 +228,16 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
       if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
         claims.put("scope",
-            scope == null || scope.isBlank() ? JwtProps.GCP_OAUTH2_SCOPE.val() : scope);
-        claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
-
+            Assert.present(scope) ? scope : JwtProps.GCP_OAUTH2_SCOPE.val());
+        
       } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-        claims.put("target_audience", targetServiceUrl);
-        claims.put("sub", serviceAccount);
-        claims.put("aud", JwtProps.GCP_TOKEN_URL.val());
-
-      } else if (targetTokenType.equals(TargetTokenType.SIGN_ONLY)) {
-        claims.put("aud", projectId);
+        claims.put("target_audience",
+            Assert.present(targetAdience) ? targetAdience : targetServiceUrl);
+        claims.put("sub", Assert.present(subject) ? subject : serviceAccount);
       }
 
-      claims.put("iss", serviceAccount);
+      claims.put("aud", Assert.present(audience) ? audience : JwtProps.GCP_TOKEN_URL.val());
+      claims.put("iss", Assert.present(issuer) ? issuer : serviceAccount);
       claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
       claims.put("iat", System.currentTimeMillis() / 1000);
 
@@ -286,7 +301,8 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
       if (verbose) {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%n%s%s%n", JwtProps.CMD_COLOR1.val(), "Invoke token request endpoint"));
+        sb.append(
+            String.format("%n%s%s%n", JwtProps.CMD_COLOR1.val(), "Invoke token request endpoint"));
         sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR5.val(), "Url"));
         sb.append(String.format("%s%s%n", JwtProps.CMD_COLOR3.val(), url));
         sb.append(String.format("%s%-10s%s%n", JwtProps.CMD_COLOR5.val(), "Payload",
@@ -419,7 +435,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     headers.put("alg", "HS256");
 
     Map<String, Object> claims = new HashMap<>();
-    claims.put("aud", this.projectId);
+    claims.put("aud", this.audience);
     Long now = System.currentTimeMillis() / 1000;
     claims.put("iat", now);
     claims.put("exp", now + 86400);
