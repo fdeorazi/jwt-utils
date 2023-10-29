@@ -81,6 +81,30 @@ class JwtTokenUtilsConsoleTest implements JwtTokenUtilsTest {
   }
 
   @Test
+  void givenJwtClaimsParams_whenSsJwtIdToken_printJwt() {
+    JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.ISS.shortParam,
+        TestConstants.SERVICE_ACCOUNT, Parameters.SUB.shortParam, TestConstants.SERVICE_ACCOUNT,
+        Parameters.TARGET_AUDIENCE.shortParam, TestConstants.TARGET_SERVICE,
+        Parameters.KEY_FILE.shortParam, TestConstants.KEY_FILE, Parameters.TYPE.shortParam,
+        TargetTokenType.ID_TOKEN.val(), Parameters.VERBOSE.verboseParam);
+
+    log.info(outCaptor.toString());
+    Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
+  }
+
+  @Test
+  void givenJwtClaimsParams_whenSsJwtAccessToken_printJwt() {
+    JwtTokenUtilsConsole.main(Parameters.SSJWT.shortParam, Parameters.ISS.shortParam,
+        TestConstants.SERVICE_ACCOUNT, Parameters.SCOPE.shortParam, TestConstants.GCP_SCOPE,
+        Parameters.AUD.shortParam, TestConstants.GCP_ACCESS_TOKEN_SSJWT_URL,
+        Parameters.KEY_FILE.shortParam, TestConstants.KEY_FILE, Parameters.TYPE.shortParam,
+        TargetTokenType.ID_TOKEN.val(), Parameters.VERBOSE.verboseParam);
+
+    log.info(outCaptor.toString());
+    Assertions.assertThat(outCaptor.toString()).isNotBlank().contains(".");
+  }
+
+  @Test
   void givenParamsB64_whenSsJwt_printJwt() {
     URL url = this.getClass().getClassLoader().getResource("pk4096.pem");
     String filePath = url.getPath();

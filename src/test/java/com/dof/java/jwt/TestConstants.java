@@ -21,5 +21,6 @@ public class TestConstants {
   public static final String PUB_KEY_FILE_2048 = "pk2048.pub";
   
   public static final String GCP_SCOPE = "https://www.googleapis.com/auth/compute";
+  public static final String GCP_ACCESS_TOKEN_SSJWT_URL = "https://oauth2.googleapis.com/token"; 
 
 }
