@@ -63,11 +63,9 @@ public class JwtTokenUtilsConsole {
     SSJWT("ssjwt", "ssjwt", new String[] {"-t", "-kf", "-iss"}),
     SSJWT_VERIFY("ssjwt-verify", "ssjwt-verify", new String[] {"-pk", "-j"}),
     ID_TOKEN("idtoken", "idtoken", new String[] {"-kf", "-ta", "-sub", "-iss"}),
-    ACCESS_TOKEN("access-token", "access-token",
-        new String[] {"-kf", "-ta", "-scope", "-iss"}),
+    ACCESS_TOKEN("access-token", "access-token", new String[] {"-kf", "-ta", "-scope", "-iss"}),
     TYPE("-t", "--type", new String[] {}),
     SECRET("-s", "--secret", new String[] {}),
-    PROJECT_ID("-p", "--project-id", new String[] {}),
     BASE64_KEY("-k", "--key", new String[] {}),
     KEY_FILE("-kf", "--key-file", new String[] {}),
     SERVICE_ACCOUNT("-sa", "--service-account", new String[] {}),
@@ -259,8 +257,8 @@ public class JwtTokenUtilsConsole {
       } else {
         errorMessage = e.getMessage();
       }
-      log.error("{}{}", JwtProps.CMD_COLOR4.val(), "ERROR");
-      log.error("{}{}{}", JwtProps.CMD_COLOR7.val(), errorMessage, JwtProps.CMD_COLOR0.val(), e);
+      log.error("{}{}: {}{}{}", JwtProps.CMD_COLOR4.val(), "ERROR", JwtProps.CMD_COLOR7.val(),
+          errorMessage, JwtProps.CMD_COLOR0.val(), e);
     }
   }
 

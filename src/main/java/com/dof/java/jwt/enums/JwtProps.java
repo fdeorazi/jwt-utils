@@ -36,7 +36,6 @@ public enum JwtProps {
   CMD_LABEL3("cmd.label3"),
   CMD_FLAGS_TYPE("cmd.flags.type"),
   CMD_FLAGS_SECRET("cmd.flags.secret"),
-  CMD_FLAGS_PROJECT_ID("cmd.flags.projectid"),
   CMD_FLAGS_BASE64_KEY("cmd.flags.key"),
   CMD_FLAGS_KEY_FILE("cmd.flags.key.file"),
   CMD_FLAGS_SERVICE_ACCOUNT("cmd.flags.service.account"),
@@ -54,6 +53,8 @@ public enum JwtProps {
   CMD_SSJWT_VERIFY("cmd.ssjwt.verify"),
   CMD_EXAMPLE1_DESC("cmd.example1.desc"),
   CMD_EXAMPLE1("cmd.example1"),
+  CMD_EXAMPLE2_DESC("cmd.example2.desc"),
+  CMD_EXAMPLE2("cmd.example2"),
   CMD_MENU_WIDTH("cmd.menu.width"),
   SSJWT_MISS_SUB("ssjwt.miss.sub"),
   SSJWT_MISS_TARGET_AUDIENCE("ssjwt.miss.target.audience");
