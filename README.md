@@ -1,17 +1,17 @@
 # Jwt Utils Project
 ## Overview
-An utility to create and verify self signed Json Web Tokens and also request short-lived credentials to Google Cloud REST API.
+An utility to create and verify self signed Json Web Tokens and also request with them, an access token to an authorization server.
 
-https://cloud.google.com/iam/docs/create-short-lived-credentials-direct
-
-I've initially developer this tool for personal usage in my Google Cloud projects and to better understand JWT, Java Cryptography Architecture (JCA) and service authentication on Google Cloud. 
+I've initially developer this tool for personal usage in my Google Cloud projects and to better understand JWT, Java Cryptography Architecture (JCA) and service authentication on Google Cloud.
 
 It allows follow functionalities:
-
 * Create and verify a self signed HS256 or RS256 Json Web Token
 * Obtain an Identity Token (OpenID Connect compliant) via Cloud enpoint with selft signed JWT
 * Obtain an Oauth2 Access Token via Cloud enpoint through self signed JWT
 
+Reference to Self Signed JWT on Google Cloud Platform:
+* https://cloud.google.com/iam/docs/create-short-lived-credentials-direct#sa-credentials-jwt
+* https://developers.google.com/identity/protocols/oauth2/service-account
 
 
 ### Signature
