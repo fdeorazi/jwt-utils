@@ -45,11 +45,13 @@ import com.dof.java.jwt.exception.JwtTokenUtilsException;
 public class CryptoFunctions {
   private static final Logger log = LoggerFactory.getLogger(CryptoFunctions.class);
 
+  private static final String RSA = "RSA";
+
   private CryptoFunctions() {}
 
   /**
-   * Split JWT and pass to {@link #verifySignature(String, String, PublicKey)}
-   * for signature verification.
+   * Split JWT and pass to {@link #verifySignature(String, String, PublicKey)} for signature
+   * verification.
    * 
    * @param signedJwt
    * @param publicKey
@@ -61,25 +63,24 @@ public class CryptoFunctions {
    * @throws IllegalBlockSizeException
    * @throws InvalidKeyException
    */
-  public static boolean verifyJwtSignature(String signedJwt, PublicKey publicKey)
-      throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException,
-      NoSuchAlgorithmException, NoSuchPaddingException, IOException {
+  public static boolean verifyJwtSignature(String signedJwt, PublicKey publicKey) {
     String[] jwtSplit = signedJwt.split("\\.");
     byte[] signatureBase64 = jwtSplit[2].getBytes();
     byte[] signature = Base64.getDecoder().decode(signatureBase64);
-    log.debug("Verifying signature ({} bytes):\nBase64:\n'{}'", signature.length,
-        new String(signatureBase64));
+
+    if (log.isDebugEnabled()) {
+      log.debug("Verifying signature ({} bytes):\nBase64:\n'{}'", signature.length,
+          new String(signatureBase64));
+    }
 
     return verifySignature(String.format("%s.%s", jwtSplit[0], jwtSplit[1]), signature, publicKey);
   }
 
   /**
    * Verify JWT signature for HS256 signed JWT.
-   * 
-   * @param signedJwt
-   *        JWT to verify
-   * @param key
-   *        The secret used in HMAC digital signature
+   *
+   * @param signedJwt JWT to verify
+   * @param key The secret used in HMAC digital signature
    * @return if the signature is verified
    * @throws InvalidKeyException
    * @throws NoSuchAlgorithmException
@@ -92,45 +93,45 @@ public class CryptoFunctions {
 
     byte[] computedHmac = signHs256(String.format("%s.%s", jwtSplit[0], jwtSplit[1]), key);
 
-    log.debug("HMAC Signature:\n{}\n", new String(signature));
-    log.debug("Computed HMAC:\n{}", new String(computedHmac));
-    
+    if (log.isTraceEnabled()) {
+      log.trace("HMAC Signature:\n{}\n", new String(signature));
+      log.trace("Computed HMAC:\n{}", new String(computedHmac));
+    }
     return Arrays.equals(signature, computedHmac);
   }
 
   /**
    * Sign data with RS256 algorithm.
    * 
-   * @param data
-   *        data to sign 
-   * @param privateKey
-   *        to use in signature
+   * @param data data to sign
+   * @param privateKey to use in signature
    * @return
    * @throws IOException
    */
   public static byte[] signRsa256(String data, PrivateKey privateKey) throws IOException {
     try {
       byte[] hashMessage = messageDigest(data);
-      log.debug("Message digest (SHA-256)({}):\n{}\n", hashMessage.length, toHex(hashMessage));
 
-      // encode hash message
       byte[] encodedHashMessage = digestInfoEncoded(hashMessage);
-      log.debug("Encoded message digest: \n{}\n", toHex(encodedHashMessage));
 
-      Cipher chiper = Cipher.getInstance("RSA");
+      Cipher chiper = Cipher.getInstance(RSA);
       chiper.init(Cipher.ENCRYPT_MODE, privateKey);
       byte[] encryptEncodMessageHash = chiper.doFinal(encodedHashMessage);
 
-      log.debug("Encrypted encoded message digest:\n{}\n", toHex(encryptEncodMessageHash));
+      if (log.isTraceEnabled()) {
+        log.trace("Message digest (SHA-256)({}):\n{}\n", hashMessage.length, toHex(hashMessage));
+        log.trace("Encoded message digest: \n{}\n", toHex(encodedHashMessage));
+        log.trace("Encrypted encoded message digest:\n{}\n", toHex(encryptEncodMessageHash));
+      }
 
       return encryptEncodMessageHash;
 
     } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
         | IllegalBlockSizeException | BadPaddingException e) {
-      throw new JwtTokenUtilsException(e.getMessage());
+      throw new JwtTokenUtilsException(e.getMessage(), e);
     }
   }
-  
+
   /**
    * Sign a JWT with HMAC SAH-256 signature.
    * 
@@ -150,43 +151,45 @@ public class CryptoFunctions {
   }
 
   /**
-   * Verify validity of an asymmetric signature of RS256 type.
+   * Verify validity of an asymmetric signature of RS256 type. It takes
+   * {@code content} content argument to self generate the digest message to use then in matching
+   * with decrypted digest message for key validity evaluation.
    *
-   * @param content
-   *        Clear data
-   * @param encryptedContentHash
-   *        Encrypted and signed hash message
-   * @param publicKey
-   *        The public key used in asymmetric signature verification
-   * @return
-   * @throws IllegalBlockSizeException
-   * @throws BadPaddingException
-   * @throws InvalidKeyException
-   * @throws NoSuchAlgorithmException
-   * @throws NoSuchPaddingException
-   * @throws IOException
+   * @param content clear content
+   * @param encryptedContentHash Encrypted and signed hash message
+   * @param publicKey The public key used in asymmetric signature verification
+   * @return if signature is verified
+   * @throws JwtTokenUtilsException if an error occurrs during verification.
    */
   public static boolean verifySignature(String content, byte[] encryptedContentHash,
-      PublicKey publicKey) throws IllegalBlockSizeException, BadPaddingException,
-      InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
+      PublicKey publicKey) {
+    try {
+      Cipher cipher;
 
-    Cipher cipher = Cipher.getInstance("RSA");
-    cipher.init(Cipher.DECRYPT_MODE, publicKey);
-    byte[] decryptedMessageHash = cipher.doFinal(encryptedContentHash);
+      cipher = Cipher.getInstance(RSA);
 
-    log.debug("Decrypted Encoded Message Hash:\n{}", toHex(decryptedMessageHash));
+      cipher.init(Cipher.DECRYPT_MODE, publicKey);
+      byte[] decryptedMessageHash = cipher.doFinal(encryptedContentHash);
 
-    // compute hash message
-    byte[] hashMessage = messageDigest(content);
-    byte[] encodedHashMessage = digestInfoEncoded(hashMessage);
+      // compute hash message
+      byte[] hashMessage = messageDigest(content);
+      byte[] encodedHashMessage = digestInfoEncoded(hashMessage);
 
-    log.debug("Computed Encoded Message Hash:\n{}", toHex(decryptedMessageHash));
+      if (log.isTraceEnabled()) {
+        log.trace("Decrypted Encoded Message Hash:\n{}", toHex(decryptedMessageHash));
+        log.trace("Computed Encoded Message Hash:\n{}", toHex(encodedHashMessage));
+      }
 
-    return Arrays.equals(decryptedMessageHash, encodedHashMessage);
+      return Arrays.equals(decryptedMessageHash, encodedHashMessage);
+
+    } catch (NoSuchAlgorithmException | NoSuchPaddingException | IOException | InvalidKeyException
+        | IllegalBlockSizeException | BadPaddingException e) {
+      throw new JwtTokenUtilsException(e.getMessage(), e);
+    }
   }
 
   private static String toHex(byte[] content) {
-    StringBuffer hexString = new StringBuffer();
+    StringBuilder hexString = new StringBuilder();
     IntStream.range(0, content.length)
         .forEach(i -> hexString.append(Integer.toHexString(0xFF & content[i])));
     return hexString.toString();

@@ -12,4 +12,8 @@ public class JwtTokenUtilsException extends RuntimeException {
   public JwtTokenUtilsException(String message) {
     super(message);
   }
+  
+  public JwtTokenUtilsException(String message, Throwable throwable) {
+    super(message, throwable);
+  }
 }

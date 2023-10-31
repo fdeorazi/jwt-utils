@@ -1,17 +1,15 @@
 /*
  * Copyright 2023 Fabio De Orazi
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
  */
 
 package com.dof.java.jwt;
@@ -25,6 +23,7 @@ import com.google.gson.JsonParser;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,20 +50,30 @@ public class PrintUtility {
    * @param encodedJwt self signed JWT.
    */
   public static synchronized void indentJwt(String encodedJwt, String label) {
-    log.info("{}{}{}{}", JwtProps.CMD_COLOR1.val(), label, "(decoded):", JwtProps.CMD_COLOR0.val());
+    StringBuilder sb = new StringBuilder();
+    sb.append(String.format("%s%s%s%s%n", JwtProps.CMD_COLOR1.val(), label, "(decoded):",
+        JwtProps.CMD_COLOR0.val()));
+
     String[] jwtSplitted = encodedJwt.split("\\.");
     String jwtHeaders = new String(Base64.getDecoder().decode(jwtSplitted[0]));
     String jwtClaims = new String(Base64.getDecoder().decode(jwtSplitted[1]));
-    indentJson(jwtHeaders, "Headers");
-    indentJson(jwtClaims, "Claims");
+    sb.append(indentJson(jwtHeaders, "Headers "));
+    sb.append(indentJson(jwtClaims, "Claim"));
+    log.info("{}", sb);
   }
 
-  private static void indentJson(String json, String label) {
-    log.info("{}{}{}", JwtProps.CMD_COLOR5.val(), label, JwtProps.CMD_COLOR0.val());
+  private static String indentJson(String json, String label) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(
+        String.format("%s%s%s%n", JwtProps.CMD_COLOR5.val(), label, JwtProps.CMD_COLOR0.val()));
+
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
     JsonElement jsonElement = JsonParser.parseString(json);
     String prettyJson = gson.toJson(jsonElement);
-    log.info("{}{}{}", JwtProps.CMD_COLOR3.val(), prettyJson, JwtProps.CMD_COLOR0.val());
+    sb.append(String.format("%s%s%s%n", JwtProps.CMD_COLOR3.val(), prettyJson,
+        JwtProps.CMD_COLOR0.val()));
+
+    return sb.toString();
   }
 
   /**
@@ -82,11 +91,23 @@ public class PrintUtility {
     while (textPos < s.length()) {
       int textLeft = s.length() - textPos;
       int screenLeft = screenWidth - format;
-      int lineLength = textLeft < screenLeft ? textLeft : screenLeft;
+      int nlPos = s.indexOf("/n", textPos) - textPos;
+      int lineLength = 0;
+      if (nlPos > -1 && nlPos < textLeft && nlPos < screenWidth) {
+        lineLength = nlPos;
+      } else {
+        lineLength = textLeft < screenLeft ? textLeft : screenLeft;
+      }
+
       String line = s.substring(textPos, textPos + lineLength);
       String formattedLine = String.format("%s%s%n", " ".repeat(format), line);
+
       sb.append(formattedLine);
+
       textPos += lineLength;
+      if (nlPos != -1) {
+        textPos += 2;
+      }
     }
   }
 
@@ -119,7 +140,7 @@ public class PrintUtility {
     StringBuilder sb = new StringBuilder();
 
     logo(sb);
-    
+
     sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL1.val(),
         JwtProps.CMD_COLOR0.val()));
 
@@ -185,6 +206,11 @@ public class PrintUtility {
     PrintUtility.format(sb, JwtProps.CMD_EXAMPLE1_DESC.val(), 4, menuWidth);
     sb.append(JwtProps.CMD_COLOR3.val());
     PrintUtility.format(sb, JwtProps.CMD_EXAMPLE1.val(), 6, menuWidth);
+    // sb.append(JwtProps.CMD_COLOR0.val());
+
+    PrintUtility.format(sb, JwtProps.CMD_EXAMPLE2_DESC.val(), 4, menuWidth);
+    sb.append(JwtProps.CMD_COLOR3.val());
+    PrintUtility.format(sb, JwtProps.CMD_EXAMPLE2.val(), 6, menuWidth);
     sb.append(JwtProps.CMD_COLOR0.val());
 
     log.info("{}", sb);

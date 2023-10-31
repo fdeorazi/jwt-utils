@@ -48,7 +48,7 @@ public interface JwtTokenUtils {
    * @param signedJwt self RS256 signed JWT
    * @return the final gcp access token
    */
-  String gcpToken(String signedJwt);
+  String gcpToken();
 
   /**
    * Verify the signature of a given signed HS256 JWT.

@@ -1,8 +1,5 @@
 package com.dof.java.jwt;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.logging.LogManager;
 import com.dof.java.jwt.enums.TargetTokenType;
 
 /**
@@ -189,17 +186,6 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
   @Override
   public JwtTokenUtils build() {
     return new JwtTokenUtilsDefault(this);
-  }
-
-  // LOGGING CONFIG
-  static {
-    try (InputStream in = JwtTokenUtilsDefault.class.getClassLoader()
-        .getResourceAsStream("console-logging.properties")) {
-      LogManager.getLogManager().readConfiguration(in);
-    } catch (IOException e) {
-      System.err.printf(e.getMessage());
-      System.exit(1);
-    }
   }
 
 }

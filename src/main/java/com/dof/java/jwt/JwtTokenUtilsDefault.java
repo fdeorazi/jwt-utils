@@ -140,7 +140,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     content = content.replace("-----BEGIN PRIVATE KEY-----", "")
         .replace("-----END PRIVATE KEY-----", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
         .replace("-----END RSA PRIVATE KEY-----", "").replaceAll("\r\n|\n|\r", "");
-    log.debug("Private key:\n{}\n", content);
+    log.trace("Private key:\n{}\n", content);
     return content;
   }
 
@@ -179,13 +179,13 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   }
 
   /**
-   * Reads public key from file system.
-   * 
+   * Reads public key from file system and return.
+   *
    * @param filePath The path of the key file.
-   * @param algorithm
-   * @return
-   * @throws IOException
-   * @throws NoSuchAlgorithmException
+   * @param algorithm the name of the key algorithm
+   * @return {@link PublicKey}
+   * @throws IOException if key file not found
+   * @throws NoSuchAlgorithmException if algorithm not found
    * @throws InvalidKeySpecException
    */
   public PublicKey readPublicKey(String filePath, String algorithm)
@@ -199,13 +199,13 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
   @Override
   public String generateSelfSignedJwt() {
-    Assert.notNull(targetTokenType, "Token type cannot be unspecified.");
+    Assert.notNull(targetTokenType, "Miss required argument 'token type'");
     if (!Assert.present(issuer) && !Assert.present(serviceAccount)) {
-      throw new IllegalArgumentException("For signed JWT issuer or service account is required.");
+      throw new IllegalArgumentException("For signed JWT issuer or service account are required.");
     }
 
     if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-      if (!Assert.present(subject) && !Assert.present(serviceAccount)) {
+      if (!Assert.present(subject) && !Assert.present(serviceAccount) && log.isWarnEnabled()) {
         log.warn(JwtProps.SSJWT_MISS_SUB.val());
       }
       if (!Assert.present(targetAdience) && !Assert.present(targetServiceUrl)) {
@@ -218,7 +218,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
         base64privateKey = readPrivateKey(keyFile);
       }
 
-      Assert.present(base64privateKey, "Private key cannot be null");
+      Assert.present(base64privateKey, "Miss required argument 'private key'");
 
       Map<String, Object> header = new HashMap<>();
       header.put("type", "JWT");
@@ -227,9 +227,8 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       Map<String, Object> claims = new HashMap<>();
 
       if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
-        claims.put("scope",
-            Assert.present(scope) ? scope : JwtProps.GCP_OAUTH2_SCOPE.val());
-        
+        claims.put("scope", Assert.present(scope) ? scope : JwtProps.GCP_OAUTH2_SCOPE.val());
+
       } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
         claims.put("target_audience",
             Assert.present(targetAdience) ? targetAdience : targetServiceUrl);
@@ -271,12 +270,14 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       return sjwt;
 
     } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-      throw new JwtTokenUtilsException(e.getMessage());
+      throw new JwtTokenUtilsException(e.getMessage(), e);
     }
   }
 
   @Override
-  public String gcpToken(String signedJwt) {
+  public String gcpToken() {
+    Assert.present(signedJwt);
+
     String idToken = null;
     try {
 
@@ -308,7 +309,6 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
         sb.append(String.format("%s%-10s%s%n", JwtProps.CMD_COLOR5.val(), "Payload",
             JwtProps.CMD_COLOR0.val()));
         sb.append(JwtProps.CMD_COLOR3.val());
-        // PrintUtility.format(sb, payload, 0, JwtTokenUtilsConsole.SCREEN_WIDTH);
         sb.append(payload.concat("\n"));
         log.info("{}", sb);
         sb.append(JwtProps.CMD_COLOR0.val());
@@ -320,9 +320,8 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
       if (conn.getResponseCode() != 200) {
         String error = readFromStream(conn.getErrorStream());
-        String message = String.format(
-            "%s return error with%nstatus %s%nmessage %s%nError payload %s%n",
-            JwtProps.GCP_TOKEN_URL.val(), conn.getResponseCode(), conn.getResponseMessage(), error);
+        String message = String.format("%s return HTTP %s %s %s", JwtProps.GCP_TOKEN_URL.val(),
+            conn.getResponseCode(), conn.getResponseMessage(), error);
 
         throw new RequestTokenHttpException(message);
       }
@@ -331,8 +330,9 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       int start = response.indexOf(":") + 2;
       int end = response.indexOf("\"", start);
       idToken = end != -1 ? response.substring(start, end) : response.substring(start);
-      log.debug("Response {}", response);
-
+      if (verbose) {
+        log.info("Response {}", response);
+      }
       conn.disconnect();
 
       if (this.verbose && targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
@@ -343,7 +343,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     } catch (RequestTokenHttpException e) {
       throw e;
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new JwtTokenUtilsException(e.getMessage(), e);
     }
   }
 
@@ -365,23 +365,16 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   @Override
   public boolean verifyHs256Jwt() {
     Assert.present(signedJwt, "Miss required argument 'signed jwt'");
-    Assert.present(sharedSecret, "Miss required argument 'shared secret'");
+    Assert.present(sharedSecret, "Miss required argument 'secret'");
     try {
       log.trace("signedJwt: '{}', sharedSecret: '{}'", signedJwt, sharedSecret);
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-      // SignedJWT signedJwtObj;
-      //
-      // signedJwtObj = SignedJWT.parse(signedJwt);
-      //
-      // log.trace("signature: {}", signedJwtObj.getSignature());
-      // JWSVerifier verifier = new MACVerifier(sharedSecret.getBytes(StandardCharsets.UTF_8));
-      // return signedJwtObj.verify(verifier);
       return CryptoFunctions.verifyJwtSignature(signedJwt, sharedSecret);
 
     } catch (InvalidKeyException | NoSuchAlgorithmException e) {
-      throw new JwtTokenUtilsException(e.getMessage());
+      throw new JwtTokenUtilsException(e.getMessage(), e);
     }
   }
 
@@ -395,7 +388,6 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       if (signedJwt == null || !signedJwt.contains(".")) {
         throw new IllegalArgumentException("Invalid Jwt");
       }
-      // SignedJWT signedJwtObj = SignedJWT.parse(signedJwt);
 
       String base64PublicKey = readPublicKey(publicKeyFile);
 
@@ -406,18 +398,11 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       KeyFactory keyFactory = KeyFactory.getInstance(RSA);
       PublicKey publicKey = keyFactory.generatePublic(spec);
 
-      // JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) publicKey);
-      // verified = signedJwtObj.verify(verifier);
       verified = CryptoFunctions.verifyJwtSignature(signedJwt, publicKey);
 
-      // } catch (Exception e) {
-      // throw e;
-      // }
-
     } catch (NumberFormatException | IOException | NoSuchAlgorithmException
-        | InvalidKeySpecException | InvalidKeyException | IllegalBlockSizeException
-        | BadPaddingException | NoSuchPaddingException e) {
-      throw new JwtTokenUtilsException(e.getMessage());
+        | InvalidKeySpecException e) {
+      throw new JwtTokenUtilsException(e.getMessage(), e);
     }
 
     return verified;
@@ -425,10 +410,8 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
   @Override
   public String generateHs256Jwt() {
-    Assert.present(sharedSecret, "Shared secret cannot be null");
+    Assert.present(sharedSecret, "Miss required parameter 'secret'");
     Assert.atLeast(sharedSecret, 32);
-
-    log.trace("sharedSecret: '{}'", sharedSecret);
 
     Map<String, Object> headers = new HashMap<>();
     headers.put("type", "JWT");
@@ -452,12 +435,10 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     try {
       signature = CryptoFunctions.signHs256(jwt, sharedSecret);
     } catch (InvalidKeyException | NoSuchAlgorithmException e) {
-      throw new JwtTokenUtilsException(e.getMessage());
+      throw new JwtTokenUtilsException(e.getMessage(), e);
     }
 
     String base64Signature = new String(Base64.getEncoder().encode(signature));
-
-    log.debug("Base64 signature:\n'{}'\n", base64Signature);
 
     String sjwt = String.format("%s.%s", jwt, base64Signature);
 
@@ -469,8 +450,8 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
   @Override
   public String generateToken() {
-    String ssjwt = generateSelfSignedJwt();
-    return gcpToken(ssjwt);
+    this.signedJwt = generateSelfSignedJwt();
+    return gcpToken();
   }
 
 }
