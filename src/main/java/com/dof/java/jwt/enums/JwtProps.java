@@ -36,7 +36,6 @@ public enum JwtProps {
   CMD_LABEL3("cmd.label3"),
   CMD_FLAGS_TYPE("cmd.flags.type"),
   CMD_FLAGS_SECRET("cmd.flags.secret"),
-  CMD_FLAGS_PROJECT_ID("cmd.flags.projectid"),
   CMD_FLAGS_BASE64_KEY("cmd.flags.key"),
   CMD_FLAGS_KEY_FILE("cmd.flags.key.file"),
   CMD_FLAGS_SERVICE_ACCOUNT("cmd.flags.service.account"),

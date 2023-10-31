@@ -67,7 +67,6 @@ public class JwtTokenUtilsConsole {
         new String[] {"-kf", "-ta", "-scope", "-iss"}),
     TYPE("-t", "--type", new String[] {}),
     SECRET("-s", "--secret", new String[] {}),
-    PROJECT_ID("-p", "--project-id", new String[] {}),
     BASE64_KEY("-k", "--key", new String[] {}),
     KEY_FILE("-kf", "--key-file", new String[] {}),
     SERVICE_ACCOUNT("-sa", "--service-account", new String[] {}),

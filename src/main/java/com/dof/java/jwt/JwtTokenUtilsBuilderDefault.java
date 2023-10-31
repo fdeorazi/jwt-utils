@@ -1,5 +1,8 @@
 package com.dof.java.jwt;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.logging.LogManager;
 import com.dof.java.jwt.enums.TargetTokenType;
 
 /**
@@ -10,7 +13,7 @@ import com.dof.java.jwt.enums.TargetTokenType;
  */
 public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
 
-  
+
   String base64privateKey;
   String sharedSecret;
   String signedJwt;
@@ -18,14 +21,14 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
   TargetTokenType targetTokenType;
   String publicKeyFile;
   boolean verbose;
-  
+
   String issuer;
   String subject;
   String audience;
   String targetAdience;
   String scope;
   Integer expireIn;
-  
+
   String targetServiceUrl;
   String serviceAccount;
   String projectId;
@@ -88,7 +91,7 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
     this.scope = scope;
     return this;
   }
-  
+
   @Override
   public JwtTokenUtilsBuilder setIssuer(String issuer) {
     this.issuer = issuer;
@@ -112,13 +115,13 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
     this.targetAdience = targetAudience;
     return this;
   }
-  
+
   @Override
   public JwtTokenUtilsBuilder setExpireIn(Integer seconds) {
     this.expireIn = seconds;
     return this;
   }
-  
+
   public String getBase64privateKey() {
     return base64privateKey;
   }
@@ -170,11 +173,11 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
   public String getAudience() {
     return audience;
   }
-  
+
   public String getScope() {
     return scope;
   }
-  
+
   public String getTargetAdience() {
     return targetAdience;
   }
@@ -186,6 +189,17 @@ public class JwtTokenUtilsBuilderDefault implements JwtTokenUtilsBuilder {
   @Override
   public JwtTokenUtils build() {
     return new JwtTokenUtilsDefault(this);
+  }
+
+  // LOGGING CONFIG
+  static {
+    try (InputStream in = JwtTokenUtilsDefault.class.getClassLoader()
+        .getResourceAsStream("console-logging.properties")) {
+      LogManager.getLogManager().readConfiguration(in);
+    } catch (IOException e) {
+      System.err.printf(e.getMessage());
+      System.exit(1);
+    }
   }
 
 }
