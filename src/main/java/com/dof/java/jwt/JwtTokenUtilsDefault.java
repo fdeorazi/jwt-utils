@@ -37,9 +37,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.dof.java.jwt.crypto.CryptoFunctions;
@@ -237,16 +234,14 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
       claims.put("aud", Assert.present(audience) ? audience : JwtProps.GCP_TOKEN_URL.val());
       claims.put("iss", Assert.present(issuer) ? issuer : serviceAccount);
-      claims.put("exp", Long.sum(System.currentTimeMillis() / 1000, 3599));
+      claims.put("exp", Long.sum(System.currentTimeMillis() / 1000,
+          (this.expireIn != null ? this.expireIn : 3599)));
       claims.put("iat", System.currentTimeMillis() / 1000);
 
       byte[] keyDerFormat = Base64.getDecoder().decode(base64privateKey);
       PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyDerFormat);
       KeyFactory keyFactory = KeyFactory.getInstance(RSA);
       PrivateKey privateKey = keyFactory.generatePrivate(spec);
-
-      // String sjwt = Jwts.builder().setClaims(claims).setHeader(header)
-      // .signWith(SignatureAlgorithm.RS256, privateKey).compact();
 
       Gson gson = new Gson();
       String jsonHeader = gson.toJson(header);
@@ -336,7 +331,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       conn.disconnect();
 
       if (this.verbose && targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-        PrintUtility.indentJwt(idToken, "Returned ID Token from GCP ");
+        PrintUtility.indentJwt(idToken, "\nReturned ID Token from GCP ");
       }
 
       return idToken;
@@ -421,7 +416,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     claims.put("aud", this.audience);
     Long now = System.currentTimeMillis() / 1000;
     claims.put("iat", now);
-    claims.put("exp", now + 86400);
+    claims.put("exp", now + (this.expireIn != null ? this.expireIn : 86400));
 
     Gson gson = new Gson();
     String jsonHeader = gson.toJson(headers);

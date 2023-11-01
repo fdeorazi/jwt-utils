@@ -189,6 +189,10 @@ public class JwtTokenUtilsConsole {
         Assert.hasNext(iter);
         builder.setTargetServiceUrl(iter.next());
 
+      } else if (Parameters.EXP.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setExpireIn(Integer.valueOf(iter.next()));
+
       } else if (Parameters.VERBOSE.isEqual(param)) {
         builder.setVerbose(true);
       }
@@ -222,7 +226,7 @@ public class JwtTokenUtilsConsole {
 
   private static void loggingConf() {
     try (InputStream in = JwtTokenUtilsDefault.class.getClassLoader()
-        .getResourceAsStream("console-logging.properties")) {
+        .getResourceAsStream("logging.properties")) {
       LogManager.getLogManager().readConfiguration(in);
     } catch (IOException e) {
       System.err.printf(e.getMessage());
