@@ -14,14 +14,13 @@
 
 package com.dof.java.jwt;
 
+import com.dof.java.jwt.annotation.Cmd;
+import com.dof.java.jwt.enums.TargetTokenType;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
-import com.dof.java.jwt.annotation.Cmd;
-import com.dof.java.jwt.enums.TargetTokenType;
-
 
 /**
  * Jar utility to generate token Json Web Token through an issuer and a private key.
@@ -45,7 +44,6 @@ public interface JwtTokenUtils {
   /**
    * Request a token at GCP token endpoint.
    *
-   * @param signedJwt self RS256 signed JWT
    * @return the final gcp access token
    */
   String gcpToken();

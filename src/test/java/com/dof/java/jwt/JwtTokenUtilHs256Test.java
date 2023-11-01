@@ -3,12 +3,13 @@ package com.dof.java.jwt;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.text.ParseException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit test.
+ * Test class to verify hs256 and hs256-verify functionality.
  *
  * @author fabio.deorazi
  *

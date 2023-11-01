@@ -137,69 +137,74 @@ public class JwtTokenUtilsConsole {
         if (Parameters.ACCESS_TOKEN.isEqual(param)) {
           builder.setTargetTokenType(TargetTokenType.ACCESS_TOKEN);
         }
-      } else if (Parameters.TYPE.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setTargetTokenType(TargetTokenType.get(iter.next()));
-
-      } else if (Parameters.SECRET.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setSharedSecret(iter.next());
-
-      } else if (Parameters.BASE64_KEY.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setBase64privateKey(iter.next());
-
-      } else if (Parameters.KEY_FILE.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setKeyFile(iter.next());
-
-      } else if (Parameters.SERVICE_ACCOUNT.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setServiceAccount(iter.next());
-
-      } else if (Parameters.SIGNED_JWT.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setSignedJwt(iter.next());
-
-      } else if (Parameters.SCOPE.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setScope(iter.next());
-
-      } else if (Parameters.PUBLIC_KEY.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setPublicKeyFile(iter.next());
-
-      } else if (Parameters.ISS.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setIssuer(iter.next());
-
-      } else if (Parameters.SUB.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setSubject(iter.next());
-
-      } else if (Parameters.AUD.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setAudience(iter.next());
-
-      } else if (Parameters.TARGET_AUDIENCE.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setTargetAudience(iter.next());
-
-      } else if (Parameters.TARGET_SERVICE.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setTargetServiceUrl(iter.next());
-
-      } else if (Parameters.EXP.isEqual(param)) {
-        Assert.hasNext(iter);
-        builder.setExpireIn(Integer.valueOf(iter.next()));
-
-      } else if (Parameters.VERBOSE.isEqual(param)) {
-        builder.setVerbose(true);
+      } else {
+        evalFlags(param, iter);
       }
-
     }
 
     evalExecution(operation);
+  }
+  
+  private void evalFlags(String param, Iterator<String> iter) {
+    if (Parameters.TYPE.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setTargetTokenType(TargetTokenType.get(iter.next()));
+
+    } else if (Parameters.SECRET.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setSharedSecret(iter.next());
+
+    } else if (Parameters.BASE64_KEY.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setBase64privateKey(iter.next());
+
+    } else if (Parameters.KEY_FILE.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setKeyFile(iter.next());
+
+    } else if (Parameters.SERVICE_ACCOUNT.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setServiceAccount(iter.next());
+
+    } else if (Parameters.SIGNED_JWT.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setSignedJwt(iter.next());
+
+    } else if (Parameters.SCOPE.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setScope(iter.next());
+
+    } else if (Parameters.PUBLIC_KEY.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setPublicKeyFile(iter.next());
+
+    } else if (Parameters.ISS.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setIssuer(iter.next());
+
+    } else if (Parameters.SUB.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setSubject(iter.next());
+
+    } else if (Parameters.AUD.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setAudience(iter.next());
+
+    } else if (Parameters.TARGET_AUDIENCE.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setTargetAudience(iter.next());
+
+    } else if (Parameters.TARGET_SERVICE.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setTargetServiceUrl(iter.next());
+
+    } else if (Parameters.EXP.isEqual(param)) {
+      Assert.hasNext(iter);
+      builder.setExpireIn(Integer.valueOf(iter.next()));
+
+    } else if (Parameters.VERBOSE.isEqual(param)) {
+      builder.setVerbose(true);
+    }
   }
 
   private void evalExecution(String operation)
@@ -215,8 +220,8 @@ public class JwtTokenUtilsConsole {
       Object result = optional.get().invoke(jwtTokenUtil);
 
       if (checkForParam(Parameters.VERBOSE)) {
-        log.info(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Result token",
-            JwtProps.CMD_COLOR0.val()));
+        log.info("%n{}{}{}", JwtProps.CMD_COLOR1.val(), "Result token",
+            JwtProps.CMD_COLOR0.val());
       }
       System.out.println(result);
     } else {

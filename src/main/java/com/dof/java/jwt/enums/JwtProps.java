@@ -1,8 +1,8 @@
 package com.dof.java.jwt.enums;
 
+import com.dof.java.jwt.exception.JwtTokenUtilsException;
 import java.io.IOException;
 import java.io.InputStream;
-import com.dof.java.jwt.exception.JwtTokenUtilsException;
 
 /**
  * Useful enumeration to map application property.

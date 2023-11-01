@@ -52,16 +52,10 @@ public class CryptoFunctions {
   /**
    * Split JWT and pass to {@link #verifySignature(String, String, PublicKey)} for signature
    * verification.
-   * 
-   * @param signedJwt
-   * @param publicKey
-   * @return
-   * @throws IOException
-   * @throws NoSuchPaddingException
-   * @throws NoSuchAlgorithmException
-   * @throws BadPaddingException
-   * @throws IllegalBlockSizeException
-   * @throws InvalidKeyException
+   *
+   * @param signedJwt The signed Jwt to verify.
+   * @param publicKey The respective public key for signature verification.
+   * @return if verified
    */
   public static boolean verifyJwtSignature(String signedJwt, PublicKey publicKey) {
     String[] jwtSplit = signedJwt.split("\\.");
@@ -82,7 +76,7 @@ public class CryptoFunctions {
    * @param signedJwt JWT to verify
    * @param key The secret used in HMAC digital signature
    * @return if the signature is verified
-   * @throws InvalidKeyException
+   * @throws InvalidKeyException 
    * @throws NoSuchAlgorithmException
    */
   public static boolean verifyJwtSignature(String signedJwt, String key)

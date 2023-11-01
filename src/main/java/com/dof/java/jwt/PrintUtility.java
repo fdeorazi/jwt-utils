@@ -36,7 +36,8 @@ import org.slf4j.LoggerFactory;
 public class PrintUtility {
   private static final Logger log = LoggerFactory.getLogger(PrintUtility.class);
   private static int menuWidth;
-
+  private static final String FRMT_4S = "%s%s%s%n";
+  
   static {
     menuWidth = Integer.valueOf(JwtProps.CMD_MENU_WIDTH.val());
   }
@@ -64,12 +65,12 @@ public class PrintUtility {
   private static String indentJson(String json, String label) {
     StringBuilder sb = new StringBuilder();
     sb.append(
-        String.format("%s%s%s%n", JwtProps.CMD_COLOR5.val(), label, JwtProps.CMD_COLOR0.val()));
+        String.format(FRMT_4S, JwtProps.CMD_COLOR5.val(), label, JwtProps.CMD_COLOR0.val()));
 
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
     JsonElement jsonElement = JsonParser.parseString(json);
     String prettyJson = gson.toJson(jsonElement);
-    sb.append(String.format("%s%s%s%n", JwtProps.CMD_COLOR3.val(), prettyJson,
+    sb.append(String.format(FRMT_4S, JwtProps.CMD_COLOR3.val(), prettyJson,
         JwtProps.CMD_COLOR0.val()));
 
     return sb.toString();
@@ -127,7 +128,7 @@ public class PrintUtility {
   public static void logo(StringBuilder sb) {
     sb.append(String.format("%s%s", JwtProps.CMD_COLOR1.val(), "_".repeat(menuWidth)));
     sb.append(JwtProps.CMD_TITLE.val());
-    sb.append(String.format("%s%s%s%n", JwtProps.CMD_BGCOLOR1.val(), " ".repeat(menuWidth),
+    sb.append(String.format(FRMT_4S, JwtProps.CMD_BGCOLOR1.val(), " ".repeat(menuWidth),
         JwtProps.CMD_COLOR0.val()));
   }
 
@@ -147,7 +148,7 @@ public class PrintUtility {
         JwtProps.CMD_HELP_USAGE.val()));
 
     // command header
-    sb.append(String.format("%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL2.val(),
+    sb.append(String.format(FRMT_4S, JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL2.val(),
         JwtProps.CMD_COLOR0.val()));
 
     // commands
@@ -162,10 +163,9 @@ public class PrintUtility {
       // command description
 
       JwtProps jwtc = null;
-      try {
-        jwtc = JwtProps.valueOf("CMD_" + (p.toString()));
-      } catch (Exception e) {
-      }
+     
+      jwtc = JwtProps.valueOf("CMD_" + (p.toString()));
+      
       sb.append(JwtProps.CMD_COLOR3.val());
       PrintUtility.format(sb, jwtc != null ? jwtc.val() : "", 8, menuWidth);
 

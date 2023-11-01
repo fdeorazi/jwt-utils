@@ -56,6 +56,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenUtilsDefault.class);
 
   private static final String RSA = "RSA";
+  private static final String FRMT_2S = "%s.%s";
 
   private String serviceAccount;
   private String sharedSecret;
@@ -183,7 +184,8 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
    * @return {@link PublicKey}
    * @throws IOException if key file not found
    * @throws NoSuchAlgorithmException if algorithm not found
-   * @throws InvalidKeySpecException
+   * @throws InvalidKeySpecException if given key doesn't match {@link X509EncodedKeySpec}
+   *         specification.
    */
   public PublicKey readPublicKey(String filePath, String algorithm)
       throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
@@ -193,6 +195,25 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     return keyFactory.generatePublic(spec);
   }
 
+  private Map<String, Object> jwtClaims() {
+    Map<String, Object> claims = new HashMap<>();
+
+    if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
+      claims.put("scope", Assert.present(scope) ? scope : JwtProps.GCP_OAUTH2_SCOPE.val());
+
+    } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
+      claims.put("target_audience",
+          Assert.present(targetAdience) ? targetAdience : targetServiceUrl);
+      claims.put("sub", Assert.present(subject) ? subject : serviceAccount);
+    }
+
+    claims.put("aud", Assert.present(audience) ? audience : JwtProps.GCP_TOKEN_URL.val());
+    claims.put("iss", Assert.present(issuer) ? issuer : serviceAccount);
+    claims.put("exp", Long.sum(System.currentTimeMillis() / 1000,
+        (this.expireIn != null ? this.expireIn : 3599)));
+    claims.put("iat", System.currentTimeMillis() / 1000);
+    return claims;
+  }
 
   @Override
   public String generateSelfSignedJwt() {
@@ -217,22 +238,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       header.put("type", "JWT");
       header.put("alg", "RS256");
 
-      Map<String, Object> claims = new HashMap<>();
-
-      if (targetTokenType.equals(TargetTokenType.ACCESS_TOKEN)) {
-        claims.put("scope", Assert.present(scope) ? scope : JwtProps.GCP_OAUTH2_SCOPE.val());
-
-      } else if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-        claims.put("target_audience",
-            Assert.present(targetAdience) ? targetAdience : targetServiceUrl);
-        claims.put("sub", Assert.present(subject) ? subject : serviceAccount);
-      }
-
-      claims.put("aud", Assert.present(audience) ? audience : JwtProps.GCP_TOKEN_URL.val());
-      claims.put("iss", Assert.present(issuer) ? issuer : serviceAccount);
-      claims.put("exp", Long.sum(System.currentTimeMillis() / 1000,
-          (this.expireIn != null ? this.expireIn : 3599)));
-      claims.put("iat", System.currentTimeMillis() / 1000);
+      Map<String, Object> claims = jwtClaims();
 
       byte[] keyDerFormat = Base64.getDecoder().decode(base64privateKey);
       PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyDerFormat);
@@ -245,7 +251,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       String jsonClaims = gson.toJson(claims);
       String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
 
-      String jwt = String.format("%s.%s", base64Header, base64Claims);
+      String jwt = String.format(FRMT_2S, base64Header, base64Claims);
 
       byte[] signature = CryptoFunctions.signRsa256(jwt, privateKey);
 
@@ -253,7 +259,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
       log.debug("Base64 signature:\n'{}'\n", base64Signature);
 
-      String sjwt = String.format("%s.%s", jwt, base64Signature);
+      String sjwt = String.format(FRMT_2S, jwt, base64Signature);
 
       if (verbose) {
         PrintUtility.indentJwt(sjwt, "Generated self signed token ");
@@ -420,7 +426,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
     String jsonClaims = gson.toJson(claims);
     String base64Claims = new String(Base64.getEncoder().encode(jsonClaims.getBytes()));
 
-    String jwt = String.format("%s.%s", base64Header, base64Claims);
+    String jwt = String.format(FRMT_2S, base64Header, base64Claims);
 
     byte[] signature;
     try {
@@ -431,7 +437,7 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
 
     String base64Signature = new String(Base64.getEncoder().encode(signature));
 
-    String sjwt = String.format("%s.%s", jwt, base64Signature);
+    String sjwt = String.format(FRMT_2S, jwt, base64Signature);
 
     if (verbose) {
       PrintUtility.indentJwt(jwt, "Generated self signed token ");
