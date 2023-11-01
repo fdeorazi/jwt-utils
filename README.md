@@ -82,7 +82,7 @@ Add follow dependency in pom.xml file
 <dependency>
     <groupId>com.dof.java.jwt</groupId>
     <artifactId>jwt-utils</artifactId>
-    <version>1.0.0</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 #### In Java Code
