@@ -23,7 +23,6 @@ import com.google.gson.JsonParser;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,7 +169,7 @@ public class PrintUtility {
       sb.append(JwtProps.CMD_COLOR3.val());
       PrintUtility.format(sb, jwtc != null ? jwtc.val() : "", 8, menuWidth);
 
-      // command flags
+      // required flags
 
       StringBuilder psb = new StringBuilder("Required Flags: ");
       Arrays.stream(p.params).forEach(pnum -> {
@@ -182,22 +181,26 @@ public class PrintUtility {
       sb.append(JwtProps.CMD_COLOR0.val());
     });
 
+    // flags
+
     sb.append(String.format("%n%s%s%s%n", JwtProps.CMD_COLOR1.val(), JwtProps.CMD_LABEL3.val(),
         JwtProps.CMD_COLOR0.val()));
-    Stream.of(Parameters.values()).filter(p -> p.shortParam.startsWith("-")).forEach(p -> {
+    Stream.of(Parameters.values()).filter(p -> p.shortParam.startsWith("-"))
+        .sorted((o1, o2) -> o1.shortParam.charAt(1) < o2.shortParam.charAt(1) ? -1 : 1)
+        .forEach(p -> {
 
-      JwtProps jwtp = null;
-      try {
-        jwtp = JwtProps.valueOf("CMD_FLAGS_" + (p.toString()));
-      } catch (Exception e) {
-      }
+          JwtProps jwtp = null;
+          try {
+            jwtp = JwtProps.valueOf("CMD_FLAGS_" + (p.toString()));
+          } catch (Exception e) {
+          }
 
-      sb.append(String.format("%4c%s%s, %-19s%s", 32, JwtProps.CMD_COLOR5.val(), p.shortParam,
-          p.verboseParam, JwtProps.CMD_COLOR0.val()));
-      sb.append(JwtProps.CMD_COLOR3.val());
-      PrintUtility.format(sb, jwtp != null ? jwtp.val() : "", 8, menuWidth);
-      sb.append(JwtProps.CMD_COLOR0.val());
-    });
+          sb.append(String.format("%4c%s%s, %-19s%s", 32, JwtProps.CMD_COLOR5.val(), p.shortParam,
+              p.verboseParam, JwtProps.CMD_COLOR0.val()));
+          sb.append(JwtProps.CMD_COLOR3.val());
+          PrintUtility.format(sb, jwtp != null ? jwtp.val() : "", 8, menuWidth);
+          sb.append(JwtProps.CMD_COLOR0.val());
+        });
 
     // examples
     sb.append(String.format("%n%s%s%s", JwtProps.CMD_COLOR1.val(), "Examples",

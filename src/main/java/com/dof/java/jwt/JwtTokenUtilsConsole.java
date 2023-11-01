@@ -189,6 +189,10 @@ public class JwtTokenUtilsConsole {
         Assert.hasNext(iter);
         builder.setTargetServiceUrl(iter.next());
 
+      } else if (Parameters.EXP.isEqual(param)) {
+        Assert.hasNext(iter);
+        builder.setExpireIn(Integer.valueOf(iter.next()));
+
       } else if (Parameters.VERBOSE.isEqual(param)) {
         builder.setVerbose(true);
       }

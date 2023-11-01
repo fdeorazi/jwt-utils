@@ -143,10 +143,10 @@ public interface JwtTokenUtilsBuilder {
   JwtTokenUtilsBuilder setTargetAudience(String targetAudience);
   
   /**
-   * Sum the given second to current time stamp and set it to 'exp' claim in JWT
-   * 
-   * @param seconds
-   * @return
+   * Sum the given second to current time stamp and set it to 'exp' claim in JWT.
+   *
+   * @param seconds The amount of second before token will expire.
+   * @return the builder for method chaining
    */
   JwtTokenUtilsBuilder setExpireIn(Integer seconds);
   
@@ -257,11 +257,12 @@ public interface JwtTokenUtilsBuilder {
   String getTargetAdience();
   
   /**
-   * Get the expireIn set in builder in {@link #setExpireIn(Integer)}
-   * 
-   * @return
+   * Get the expireIn set in builder in {@link #setExpireIn(Integer)}.
+   *
+   * @return The expiration time amount.
    */
   Integer getExpireIn();
+  
   /**
    * Get if builder was set as verbose {@link #setVerbose(boolean)}.
    *
