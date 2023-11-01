@@ -201,13 +201,9 @@ public class JwtTokenUtilsDefault implements JwtTokenUtils {
       throw new IllegalArgumentException("For signed JWT issuer or service account are required.");
     }
 
-    if (targetTokenType.equals(TargetTokenType.ID_TOKEN)) {
-      if (!Assert.present(subject) && !Assert.present(serviceAccount) && log.isWarnEnabled()) {
-        log.warn(JwtProps.SSJWT_MISS_SUB.val());
-      }
-      if (!Assert.present(targetAdience) && !Assert.present(targetServiceUrl)) {
-        throw new IllegalArgumentException(JwtProps.SSJWT_MISS_TARGET_AUDIENCE.val());
-      }
+    if (targetTokenType.equals(TargetTokenType.ID_TOKEN) && !Assert.present(targetAdience)
+        && !Assert.present(targetServiceUrl)) {
+      throw new IllegalArgumentException(JwtProps.SSJWT_MISS_TARGET_AUDIENCE.val());
     }
 
     try {

@@ -62,7 +62,7 @@ public class JwtTokenUtilsConsole {
     HS256_VERIFY("hs256-verify", "hs256-verify", new String[] {"-s", "-j"}),
     SSJWT("ssjwt", "ssjwt", new String[] {"-t", "-kf", "-iss"}),
     SSJWT_VERIFY("ssjwt-verify", "ssjwt-verify", new String[] {"-pk", "-j"}),
-    ID_TOKEN("idtoken", "idtoken", new String[] {"-kf", "-ta", "-sub", "-iss"}),
+    ID_TOKEN("idtoken", "idtoken", new String[] {"-kf", "-ta", "-iss"}),
     ACCESS_TOKEN("access-token", "access-token", new String[] {"-kf", "-ta", "-scope", "-iss"}),
     TYPE("-t", "--type", new String[] {}),
     SECRET("-s", "--secret", new String[] {}),
