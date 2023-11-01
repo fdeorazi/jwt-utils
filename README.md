@@ -61,11 +61,18 @@ java -jar target/jwt-utils.jar --help
 java -jar target/jwt-utils.jar --secret <hmac-256bit-ascii-secret> -v
 ```
 ![Alt text](screen/jwt-token-utils-hs256-verbose.png)
-
+###### Generate an RS256 signed Jwt
+Generate an ID Token and then use it to invoke a Google Cloud Run service endpoint.
+```
+java -jar jwt-utils.jar ssjwt \
+  -kf private-key.pem \
+  --issuer saverice-account1@myproject-id.iam.gserviceaccount.com \
+  --target-audience https://project-id-jbywjzjd6a-oc.a.run.app
+```
 Then for example we can use it like follow:
 ```
-curl -X POST https://pubsub.googleapis.com/v1/projects/project-id/topics/topic-id:publish \
-  -H 'Authorization: Bearer: <access-token>'
+curl -X POST https://project-id-jbywjzjd6a-oc.a.run.app/service-id/path \
+  -H 'Authorization: Bearer <access-token>'
   ...
 ```
 ### From Java existing project
